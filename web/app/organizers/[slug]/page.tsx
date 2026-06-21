@@ -6,12 +6,14 @@ export const metadata: Metadata = {
   description: 'Professional organizer page with events, videos, photos, reviews, followers, and verification.',
 };
 
-export default function OrganizerPage({ params }: { params: { slug: string } }) {
+export default async function OrganizerPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+
   return (
     <>
       <section className="panel hero-panel">
         <div className="hero-content">
-          <h1>{params.slug.replaceAll('-', ' ')}</h1>
+          <h1>{slug.replaceAll('-', ' ')}</h1>
           <p>Verified organizer profile with upcoming events, past events, videos, photos, reviews, and sponsor-ready proof.</p>
           <div className="hero-actions">
             <button className="button">Follow Organizer</button>

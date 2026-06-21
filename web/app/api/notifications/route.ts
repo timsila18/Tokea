@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireSuperAdmin } from '@/lib/authz';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const payloadSchema = z.object({
@@ -10,6 +11,11 @@ const payloadSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await requireSuperAdmin();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
   const parsed = payloadSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid notification payload' }, { status: 400 });

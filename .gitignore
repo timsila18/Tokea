@@ -5,6 +5,7 @@
 .env
 build/
 coverage/
+*.tsbuildinfo
 node_modules/
 .next/
 web/node_modules/

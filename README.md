@@ -94,4 +94,8 @@ Tagline: **Don't Hear About It. Tokea.**
 4. Apply `supabase/schema.sql` in your Supabase SQL editor.
 5. For web: `cd web`, copy `.env.example` to `.env.local`, then run `npm install` and `npm run dev`.
 
+## Vercel
+
+The web platform is deployable from `web/`. See `docs/VERCEL_DEPLOYMENT.md` for required environment variables, firewall recommendations, and the production deploy flow.
+
 Supabase email confirmation and OTP flows should remain disabled for this product flow.

@@ -1,13 +1,32 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "form-action 'self'",
+  "img-src 'self' data: blob: https://*.supabase.co",
+  "media-src 'self' blob: https://*.supabase.co",
+  "connect-src 'self' https://vqowmnmqfdufgjbekdll.supabase.co wss://vqowmnmqfdufgjbekdll.supabase.co",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
+  'upgrade-insecure-requests',
+].join('; ');
+
 const securityHeaders = {
+  'Content-Security-Policy': contentSecurityPolicy,
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), payment=(self)',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Resource-Policy': 'same-origin',
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const response = NextResponse.next();
   Object.entries(securityHeaders).forEach(([key, value]) => response.headers.set(key, value));
 

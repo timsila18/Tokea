@@ -5,14 +5,15 @@ import { eventJsonLd, eventMetadata } from '@/lib/seo';
 import { demoEvents } from '@/lib/data';
 import { ModuleTable } from '@/components/ModuleTable';
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 function getEvent(slug: string) {
   return demoEvents.find((event) => event.slug === slug);
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const event = getEvent(params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const event = getEvent(slug);
   if (!event) return {};
   return eventMetadata({
     title: event.title,
@@ -23,8 +24,9 @@ export function generateMetadata({ params }: Props): Metadata {
   });
 }
 
-export default function EventDetailPage({ params }: Props) {
-  const event = getEvent(params.slug);
+export default async function EventDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const event = getEvent(slug);
   if (!event) notFound();
 
   const jsonLd = eventJsonLd({

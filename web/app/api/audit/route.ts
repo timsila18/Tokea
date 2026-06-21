@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireSuperAdmin } from '@/lib/authz';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const auditSchema = z.object({
@@ -11,6 +12,11 @@ const auditSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await requireSuperAdmin();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
   const parsed = auditSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid audit payload' }, { status: 400 });

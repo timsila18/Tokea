@@ -6,12 +6,14 @@ export const metadata: Metadata = {
   description: 'Venue page with capacity, location, maps, upcoming events, ratings, and reviews.',
 };
 
-export default function VenuePage({ params }: { params: { slug: string } }) {
+export default async function VenuePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+
   return (
     <>
       <section className="panel hero-panel">
         <div className="hero-content">
-          <h1>{params.slug.replaceAll('-', ' ')}</h1>
+          <h1>{slug.replaceAll('-', ' ')}</h1>
           <p>Venue profile with capacity, images, maps, upcoming events, past events, ratings, and reviews.</p>
         </div>
       </section>

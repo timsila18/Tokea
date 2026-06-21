@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireSignedInUser } from '@/lib/authz';
 
 const checkoutSchema = z.object({
   eventId: z.string().uuid(),
@@ -11,6 +12,11 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await requireSignedInUser();
+  if ('error' in auth) {
+    return auth.error;
+  }
+
   const parsed = checkoutSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid checkout payload' }, { status: 400 });
