@@ -122,13 +122,13 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-            <div className="spotlight-media">
+            <Link className="spotlight-media" href="/events/blankets-and-wine-nairobi" aria-label="Open Blankets & Wine Nairobi event">
               <div className="featured-event">
                 <span>This Saturday</span>
                 <strong>Blankets & Wine Nairobi</strong>
                 <em><MapPin size={14} /> Uhuru Gardens, Nairobi</em>
               </div>
-            </div>
+            </Link>
             <div className="carousel-control">
               <ChevronLeft size={22} />
               <i />
@@ -155,9 +155,10 @@ export default function HomePage() {
                   <p><MapPin size={14} /> {event.venue}</p>
                   <p>{event.date} - {event.time}</p>
                   <b>{event.price}</b>
+                  <span className="event-open">View details <ArrowRight size={14} /></span>
                 </Link>
               ))}
-              <button className="floating-next" aria-label="Next events"><ChevronRight size={22} /></button>
+              <Link className="floating-next" href="/events/nairobi-comedy-night" aria-label="Open Nairobi Comedy Night"><ChevronRight size={22} /></Link>
             </div>
           </section>
 
@@ -198,14 +199,14 @@ export default function HomePage() {
             </div>
             <div className="activity-list">
               {activity.map(([title, body, time, Icon, tone]) => (
-                <div className="activity-row" key={title as string}>
+                <Link className="activity-row" href={title === 'Event updated' ? '/events/koroga-festival-2025' : '/admin'} key={title as string}>
                   <span className={`activity-icon ${tone}`}><Icon size={20} /></span>
                   <div>
                     <strong>{title}</strong>
                     <p>{body}</p>
                   </div>
                   <time>{time}</time>
-                </div>
+                </Link>
               ))}
             </div>
             <Link className="rail-link" href="/admin">View all activity <ArrowRight size={16} /></Link>
