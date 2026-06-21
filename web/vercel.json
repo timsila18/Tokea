@@ -9,7 +9,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://vqowmnmqfdufgjbekdll.supabase.co wss://vqowmnmqfdufgjbekdll.supabase.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://vqowmnmqfdufgjbekdll.supabase.co wss://vqowmnmqfdufgjbekdll.supabase.co; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",

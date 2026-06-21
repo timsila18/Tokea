@@ -6,7 +6,7 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self'",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
   "media-src 'self' blob: https://*.supabase.co",
   "connect-src 'self' https://vqowmnmqfdufgjbekdll.supabase.co wss://vqowmnmqfdufgjbekdll.supabase.co",
   "script-src 'self' 'unsafe-inline'",
