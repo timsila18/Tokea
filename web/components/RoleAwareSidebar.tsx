@@ -4,59 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  CalendarDays,
   LogIn,
   LogOut,
   Menu,
-  Plane,
-  Shield,
-  Ticket,
   UserPlus,
-  Users,
-  Utensils,
-  WalletCards,
 } from 'lucide-react';
+import { dashboardForRole, navItems, normalizeRole, roleLabels, type AppRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-
-type AppRole = 'super_admin' | 'organizer' | 'attendee' | 'vendor' | 'event_staff';
-
-type NavItem = {
-  label: string;
-  href: string;
-  icon: typeof WalletCards;
-  roles?: AppRole[];
-};
-
-const navItems: NavItem[] = [
-  { label: 'Public', href: '/', icon: WalletCards },
-  { label: 'Events', href: '/events/blankets-and-wine-nairobi', icon: CalendarDays },
-  { label: 'Tickets', href: '/dashboard/attendee', icon: Ticket, roles: ['attendee', 'super_admin'] },
-  { label: 'Foodo', href: '/dashboard/vendor', icon: Utensils, roles: ['vendor', 'super_admin'] },
-  { label: 'Triplink', href: '/search?q=Triplink', icon: Plane },
-  { label: 'Organizer', href: '/dashboard/organizer', icon: Users, roles: ['organizer', 'super_admin'] },
-  { label: 'Staff', href: '/dashboard/staff', icon: Users, roles: ['event_staff', 'super_admin'] },
-  { label: 'Admin', href: '/admin', icon: Shield, roles: ['super_admin'] },
-];
-
-const roleLabels: Record<AppRole, string> = {
-  super_admin: 'Super Admin',
-  organizer: 'Organizer',
-  attendee: 'Attendee',
-  vendor: 'Vendor',
-  event_staff: 'Event Staff',
-};
-
-const roleDashboards: Record<AppRole, string> = {
-  super_admin: '/admin',
-  organizer: '/dashboard/organizer',
-  attendee: '/dashboard/attendee',
-  vendor: '/dashboard/vendor',
-  event_staff: '/dashboard/staff',
-};
-
-export function dashboardForRole(role?: string | null) {
-  return roleDashboards[(role as AppRole) || 'attendee'] ?? '/dashboard/attendee';
-}
 
 export function RoleAwareSidebar() {
   const pathname = usePathname();
@@ -90,7 +44,7 @@ export function RoleAwareSidebar() {
 
       setFullName(profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? 'Tokea User');
       // UI personalization only. Server authorization still uses database-backed checks.
-      setRole(((userRole?.role ?? profile?.role ?? user.user_metadata?.role ?? 'attendee') as AppRole) || 'attendee');
+      setRole(normalizeRole(userRole?.role ?? profile?.role ?? user.user_metadata?.role));
     }
 
     loadIdentity();

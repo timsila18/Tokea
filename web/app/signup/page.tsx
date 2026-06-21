@@ -3,25 +3,20 @@
 import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { appRoles, type AppRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-
-const roles = [
-  ['attendee', 'Attendee'],
-  ['organizer', 'Organizer'],
-  ['vendor', 'Vendor'],
-  ['event_staff', 'Event Staff'],
-] as const;
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [role, setRole] = useState<(typeof roles)[number][0]>('attendee');
+  const [role, setRole] = useState<AppRole>('attendee');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [profileName, setProfileName] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -89,11 +84,11 @@ export default function SignupPage() {
       }
     }
 
-    if (role === 'vendor') {
+    if (role === 'service_vendor' || role === 'food_vendor' || role === 'transport_provider') {
       const { error: vendorError } = await supabase.from('vendors').upsert(
         {
           profile_id: data.user.id,
-          business_name: businessName.trim(),
+          business_name: businessName.trim() || profileName.trim(),
         },
         { onConflict: 'profile_id' },
       );
@@ -104,7 +99,7 @@ export default function SignupPage() {
       }
     }
 
-    if (role === 'event_staff') {
+    if (role === 'event_staff' || role === 'volunteer' || role === 'organizer_team_member') {
       const { error: staffError } = await supabase.from('staff_profiles').upsert(
         { profile_id: data.user.id },
         { onConflict: 'profile_id' },
@@ -130,8 +125,8 @@ export default function SignupPage() {
         <h1>Create account</h1>
         <label>
           Account Type
-          <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
-            {roles.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          <select value={role} onChange={(event) => setRole(event.target.value as AppRole)}>
+            {appRoles.filter((item) => item.value !== 'super_admin').map(({ value, label }) => <option value={value} key={value}>{label}</option>)}
           </select>
         </label>
         <label>
@@ -152,10 +147,16 @@ export default function SignupPage() {
             <input value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} required />
           </label>
         ) : null}
-        {role === 'vendor' ? (
+        {role === 'food_vendor' || role === 'transport_provider' || role === 'service_vendor' ? (
           <label>
             Business Name
             <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} required />
+          </label>
+        ) : null}
+        {role === 'sponsor' || role === 'artist_speaker' || role === 'venue_owner' ? (
+          <label>
+            {role === 'sponsor' ? 'Company Name' : role === 'venue_owner' ? 'Venue Name' : 'Stage / Professional Name'}
+            <input value={profileName} onChange={(event) => setProfileName(event.target.value)} required />
           </label>
         ) : null}
         <label>

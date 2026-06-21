@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { dashboardForRole } from '@/components/RoleAwareSidebar';
+import { dashboardForRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export default function DashboardRouterPage() {

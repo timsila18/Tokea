@@ -1,28 +1,31 @@
 import { DashboardPage } from '@/components/DashboardPage';
 import { ModuleTable } from '@/components/ModuleTable';
+import { RoleGate } from '@/components/RoleGate';
 
 export default function AttendeeDashboardPage() {
   return (
-    <DashboardPage
-      title="Attendee Dashboard"
-      description="Ticket wallet, Foodo orders, Triplink passes, merchandise, rewards, referrals, announcements, and event-day maps."
-      tiles={[
-        { label: 'Tickets', value: '2' },
-        { label: 'Food Orders', value: '3' },
-        { label: 'Transport Passes', value: '1' },
-        { label: 'Rewards', value: '1,240' },
-      ]}
-    >
-      <ModuleTable
-        title="Unified Purchase Path"
-        columns={['Step', 'Table', 'Realtime']}
-        rows={[
-          ['Ticket', 'ticket_orders', 'Yes'],
-          ['Food', 'food_orders', 'Yes'],
-          ['Transport', 'transport_bookings', 'Yes'],
-          ['Merchandise', 'merchandise_orders', 'Yes'],
+    <RoleGate allowedRoles={['attendee', 'super_admin']}>
+      <DashboardPage
+        title="Attendee Dashboard"
+        description="Personal feed, ticket wallet, saved events, communities, event-day maps, rewards, and notifications."
+        tiles={[
+          { label: 'Tickets', value: '2' },
+          { label: 'Saved Events', value: '9' },
+          { label: 'Communities', value: '4' },
+          { label: 'Rewards', value: '1,240' },
         ]}
-      />
-    </DashboardPage>
+      >
+        <ModuleTable
+          title="Attendee Experience"
+          columns={['Area', 'Access', 'Realtime']}
+          rows={[
+            ['Tickets', 'Own ticket_orders only', 'Yes'],
+            ['Communities', 'Joined event channels', 'Yes'],
+            ['Saved Events', 'Own saved_events only', 'Yes'],
+            ['Notifications', 'Own notifications only', 'Yes'],
+          ]}
+        />
+      </DashboardPage>
+    </RoleGate>
   );
 }

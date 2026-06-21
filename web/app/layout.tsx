@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { RoleAwareSidebar } from '@/components/RoleAwareSidebar';
+import { publicEnv } from '@/lib/env';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tokea.co.ke'),
+  metadataBase: new URL(publicEnv.NEXT_PUBLIC_SITE_URL),
   title: {
     default: "Tokea | Don't Hear About It. Tokea.",
     template: '%s | Tokea',

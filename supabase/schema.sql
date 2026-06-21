@@ -5,7 +5,15 @@ create type public.app_role as enum (
   'organizer',
   'attendee',
   'vendor',
-  'event_staff'
+  'event_staff',
+  'organizer_team_member',
+  'volunteer',
+  'food_vendor',
+  'transport_provider',
+  'service_vendor',
+  'sponsor',
+  'artist_speaker',
+  'venue_owner'
 );
 
 create type public.event_status as enum (

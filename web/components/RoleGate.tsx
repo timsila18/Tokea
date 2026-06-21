@@ -4,11 +4,11 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
-import { dashboardForRole } from '@/components/RoleAwareSidebar';
+import { dashboardForRole, normalizeRole, type AppRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 type RoleGateProps = {
-  allowedRoles: string[];
+  allowedRoles: AppRole[];
   children: ReactNode;
 };
 
@@ -28,7 +28,7 @@ export function RoleGate({ allowedRoles, children }: RoleGateProps) {
       }
 
       const { data: roleRow } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-      const role = roleRow?.role ?? user.user_metadata?.role ?? 'attendee';
+      const role = normalizeRole(roleRow?.role ?? user.user_metadata?.role);
       const dashboard = dashboardForRole(role);
       setDashboardHref(dashboard);
       setStatus(allowedRoles.includes(role) ? 'allowed' : 'denied');
