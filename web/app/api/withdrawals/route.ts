@@ -19,8 +19,8 @@ const withdrawalSchema = z.discriminatedUnion('method', [
   }),
 ]);
 
-export async function GET() {
-  const auth = await requireSignedInUser();
+export async function GET(request: Request) {
+  const auth = await requireSignedInUser(request);
   if ('error' in auth) {
     return auth.error;
   }
@@ -49,7 +49,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireSignedInUser();
+  const auth = await requireSignedInUser(request);
   if ('error' in auth) {
     return auth.error;
   }

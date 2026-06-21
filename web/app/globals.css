@@ -734,8 +734,11 @@ button {
   background: rgba(12, 12, 13, 0.9);
   border: 1px solid var(--line-strong);
   border-radius: 9px;
+  color: inherit;
+  display: block;
   overflow: hidden;
   padding-bottom: 10px;
+  text-decoration: none;
 }
 
 .event-poster {

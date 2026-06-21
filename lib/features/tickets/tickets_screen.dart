@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/mpesa_payment_service.dart';
 import '../../core/theme/tokea_theme.dart';
 
 class TicketsScreen extends StatelessWidget {
@@ -45,7 +46,7 @@ class TicketsScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _WalletTab(walletStream: walletStream),
-            const _PurchaseTab(),
+            _PurchaseTab(client: Supabase.instance.client),
             const _TransferTab(),
             const _RefundTab(),
           ],
@@ -120,28 +121,124 @@ class _TicketWalletCard extends StatelessWidget {
   }
 }
 
-class _PurchaseTab extends StatelessWidget {
-  const _PurchaseTab();
+class _PurchaseTab extends StatefulWidget {
+  const _PurchaseTab({required this.client});
+
+  final SupabaseClient client;
+
+  @override
+  State<_PurchaseTab> createState() => _PurchaseTabState();
+}
+
+class _PurchaseTabState extends State<_PurchaseTab> {
+  final _phoneController = TextEditingController();
+  var _quantity = 1;
+  Map<String, dynamic>? _selectedTicket;
+  bool _loading = false;
+
+  Future<List<Map<String, dynamic>>> _loadTickets() async {
+    final rows = await widget.client
+        .from('ticket_types')
+        .select('id, event_id, name, price_cents, currency, quantity_total, quantity_sold, quantity_reserved, events(title)')
+        .eq('is_active', true)
+        .order('created_at');
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  Future<void> _checkout() async {
+    final ticket = _selectedTicket;
+    if (ticket == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final result = await MpesaPaymentService(widget.client).startTicketCheckout(
+        eventId: ticket['event_id'].toString(),
+        ticketTypeId: ticket['id'].toString(),
+        quantity: _quantity,
+        phoneNumber: _phoneController.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['customerMessage']?.toString() ?? 'Check your phone to complete M-Pesa payment.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        Text('Buy in under 60 seconds', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 16),
-        const _CheckoutStep(icon: Icons.confirmation_number_outlined, title: 'Select Ticket', body: 'Early Bird, Regular, VIP, VVIP, Group, Student, Corporate, or Free.'),
-        const _CheckoutStep(icon: Icons.add_shopping_cart, title: 'Confirm Quantity', body: 'Maximum per user and capacity checks happen before payment.'),
-        const _CheckoutStep(icon: Icons.local_offer_outlined, title: 'Apply Promo Code', body: 'EARLYBIRD, VIP20, STUDENT50, FREETICKET and promoter codes.'),
-        const _CheckoutStep(icon: Icons.phone_iphone, title: 'Pay via M-Pesa', body: 'Daraja STK Push first, Paybill/Till and card payments prepared.'),
-        const _CheckoutStep(icon: Icons.qr_code_2, title: 'Receive Ticket', body: 'Order, wallet ticket, and unique QR ownership record are generated.'),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
-          onPressed: null,
-          icon: Icon(Icons.lock_outline),
-          label: Text('Checkout placeholder'),
-        ),
-      ],
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _loadTickets(),
+      builder: (context, snapshot) {
+        final tickets = snapshot.data ?? [];
+        _selectedTicket ??= tickets.isNotEmpty ? tickets.first : null;
+
+        return ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Text('Buy in under 60 seconds', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: CircularProgressIndicator())
+            else if (tickets.isEmpty)
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('No live ticket types yet'),
+                  subtitle: Text('Create ticket types for an event, then they will appear here for M-Pesa checkout.'),
+                ),
+              )
+            else ...[
+              DropdownButtonFormField<Map<String, dynamic>>(
+                value: _selectedTicket,
+                decoration: const InputDecoration(labelText: 'Ticket'),
+                items: tickets.map((ticket) {
+                  final event = ticket['events'] is Map ? ticket['events'] as Map : const {};
+                  final title = event['title']?.toString() ?? 'Tokea Event';
+                  final priceCents = ticket['price_cents'] is num ? ticket['price_cents'] as num : 0;
+                  final price = (priceCents / 100).round();
+                  return DropdownMenuItem(
+                    value: ticket,
+                    child: Text('$title - ${ticket['name']} - KES $price'),
+                  );
+                }).toList(),
+                onChanged: (value) => setState(() => _selectedTicket = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: _quantity,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+                items: List.generate(10, (index) => index + 1).map((value) => DropdownMenuItem(value: value, child: Text('$value'))).toList(),
+                onChanged: (value) => setState(() => _quantity = value ?? 1),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'M-Pesa Phone Number', hintText: '2547...'),
+              ),
+              const SizedBox(height: 14),
+              ElevatedButton.icon(
+                onPressed: _loading ? null : _checkout,
+                icon: const Icon(Icons.phone_iphone),
+                label: Text(_loading ? 'Starting STK Push...' : 'Pay with M-Pesa'),
+              ),
+            ],
+            const SizedBox(height: 16),
+            const _CheckoutStep(icon: Icons.qr_code_2, title: 'After Payment', body: 'Safaricom callback marks the order paid and your ticket wallet updates in realtime.'),
+          ],
+        );
+      },
     );
   }
 }

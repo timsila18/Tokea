@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/tokea_theme.dart';
 
 class FinanceBudgetingScreen extends StatelessWidget {
@@ -32,6 +33,12 @@ class FinanceBudgetingScreen extends StatelessWidget {
               _FinanceMetric(label: 'Sponsor Income', value: 'KES 120K'),
               _FinanceMetric(label: 'Projected Profit', value: 'KES 254K'),
             ],
+          ),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/organizer/withdrawals'),
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            label: const Text('Request Withdrawal'),
           ),
           const SizedBox(height: 18),
           Text('Budget Categories', style: Theme.of(context).textTheme.titleLarge),

@@ -15,7 +15,7 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireSignedInUser();
+  const auth = await requireSignedInUser(request);
   if ('error' in auth) {
     return auth.error;
   }

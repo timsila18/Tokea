@@ -1,5 +1,37 @@
 export const demoEvents = [
   {
+    slug: 'blankets-and-wine-nairobi',
+    title: 'Blankets & Wine Nairobi',
+    location: 'Uhuru Gardens, Nairobi',
+    date: '2026-07-04',
+    price: 'From KES 2,500',
+    description: 'A premium outdoor music, food, fashion, and culture experience built for Nairobi weekends.',
+  },
+  {
+    slug: 'koroga-festival-2025',
+    title: 'Koroga Festival 2025',
+    location: 'The Carnivore Grounds',
+    date: '2026-07-18',
+    price: 'From KES 3,000',
+    description: 'Live performances, curated food vendors, VIP lounges, sponsor activations, and citywide event energy.',
+  },
+  {
+    slug: 'sauti-sol-live-in-concert',
+    title: 'Sauti Sol Live in Concert',
+    location: 'KICC, Nairobi',
+    date: '2026-08-01',
+    price: 'From KES 4,000',
+    description: 'A polished concert night with ticketing, transport, food pre-orders, and event-day wallet access.',
+  },
+  {
+    slug: 'nairobi-comedy-night',
+    title: 'Nairobi Comedy Night',
+    location: 'The Standup Lounge',
+    date: '2026-07-25',
+    price: 'From KES 1,200',
+    description: 'A premium comedy showcase for Nairobi audiences with reserved seating and social sharing.',
+  },
+  {
     slug: 'nairobi-jazz-festival-2027',
     title: 'Nairobi Jazz Festival 2027',
     location: 'KICC, Nairobi',

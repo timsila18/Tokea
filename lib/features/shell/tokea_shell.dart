@@ -7,14 +7,16 @@ import '../reels/reels_screen.dart';
 import '../tickets/tickets_screen.dart';
 
 class TokeaShell extends StatefulWidget {
-  const TokeaShell({super.key});
+  const TokeaShell({this.initialIndex = 0, super.key});
+
+  final int initialIndex;
 
   @override
   State<TokeaShell> createState() => _TokeaShellState();
 }
 
 class _TokeaShellState extends State<TokeaShell> {
-  var _index = 0;
+  late var _index = widget.initialIndex;
 
   final _screens = const [
     HomeFeedScreen(),

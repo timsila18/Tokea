@@ -5,6 +5,7 @@ import '../core/theme/tokea_theme.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/checkin/checkin_scanner_screen.dart';
+import '../features/events/event_detail_screen.dart';
 import '../features/experience/attendee_experience_hub_screen.dart';
 import '../features/experience/foodo_screen.dart';
 import '../features/experience/logistics_health_screen.dart';
@@ -21,6 +22,7 @@ import '../features/organizers/organizer_command_center_screen.dart';
 import '../features/organizers/organizer_verification_screen.dart';
 import '../features/organizers/team_documents_screen.dart';
 import '../features/organizers/ticket_sales_dashboard_screen.dart';
+import '../features/organizers/withdrawal_request_screen.dart';
 import '../features/operations/event_command_center_screen.dart';
 import '../features/operations/event_workspace_screen.dart';
 import '../features/operations/incident_emergency_screen.dart';
@@ -51,7 +53,19 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/app',
-      builder: (context, state) => const TokeaShell(),
+      builder: (context, state) {
+        final extra = state.extra;
+        final initialIndex = extra is Map<String, dynamic> ? extra['tab'] as int? ?? 0 : 0;
+        return TokeaShell(initialIndex: initialIndex);
+      },
+    ),
+    GoRoute(
+      path: '/events/:eventId',
+      builder: (context, state) {
+        final extra = state.extra;
+        final event = extra is Map<String, dynamic> ? extra : <String, dynamic>{'title': 'Tokea Event'};
+        return EventDetailScreen(event: event);
+      },
     ),
     GoRoute(
       path: '/notifications',
@@ -124,6 +138,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/organizer/finance',
       builder: (context, state) => const FinanceBudgetingScreen(),
+    ),
+    GoRoute(
+      path: '/organizer/withdrawals',
+      builder: (context, state) => const WithdrawalRequestScreen(),
     ),
     GoRoute(
       path: '/organizer/analytics',

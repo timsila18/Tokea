@@ -8,8 +8,8 @@ const updateSchema = z.object({
   adminNotes: z.string().max(500).optional(),
 });
 
-export async function GET() {
-  const auth = await requireSuperAdmin();
+export async function GET(request: Request) {
+  const auth = await requireSuperAdmin(request);
   if ('error' in auth) {
     return auth.error;
   }
@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireSuperAdmin();
+  const auth = await requireSuperAdmin(request);
   if ('error' in auth) {
     return auth.error;
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../core/theme/tokea_theme.dart';
 
 class EventPostCard extends StatelessWidget {
@@ -11,18 +12,23 @@ class EventPostCard extends StatelessWidget {
     final title = event['title']?.toString() ?? 'Untitled Event';
     final location = event['location_name']?.toString() ?? 'Kenya';
     final caption = event['caption']?.toString() ?? event['description']?.toString() ?? '';
-    final date = event['starts_at']?.toString().split('T').first ?? 'Coming soon';
+    final dateValue = event['starts_at']?.toString();
+    final date = dateValue == null || dateValue.isEmpty ? 'Coming soon' : dateValue.split('T').first;
     final price = event['ticket_starting_price_cents'];
     final priceText = price is int && price > 0 ? 'From KES ${(price / 100).round()}' : 'Ticket info soon';
     final organizer = event['organizer_name']?.toString() ?? 'Tokea Organizer';
+    final eventId = event['id']?.toString() ?? title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: TokeaColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Column(
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: () => context.go('/events/$eventId', extra: event),
+      child: Container(
+        decoration: BoxDecoration(
+          color: TokeaColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
@@ -74,18 +80,23 @@ class EventPostCard extends StatelessWidget {
               spacing: 4,
               runSpacing: 4,
               children: [
-                _Action(icon: Icons.favorite_border, label: 'Like'),
-                _Action(icon: Icons.mode_comment_outlined, label: 'Comment'),
-                _Action(icon: Icons.ios_share, label: 'Share'),
-                _Action(icon: Icons.star_border, label: 'Interested'),
-                _Action(icon: Icons.check_circle_outline, label: 'Going'),
-                _Action(icon: Icons.confirmation_number_outlined, label: 'Buy Ticket'),
+                _Action(icon: Icons.favorite_border, label: 'Like', onPressed: () => _show(context, 'Liked $title')),
+                _Action(icon: Icons.mode_comment_outlined, label: 'Comment', onPressed: () => context.go('/events/$eventId', extra: event)),
+                _Action(icon: Icons.ios_share, label: 'Share', onPressed: () => _show(context, 'Share link copied')),
+                _Action(icon: Icons.star_border, label: 'Interested', onPressed: () => _show(context, 'Marked interested')),
+                _Action(icon: Icons.check_circle_outline, label: 'Going', onPressed: () => _show(context, 'Marked going')),
+                _Action(icon: Icons.confirmation_number_outlined, label: 'Buy Ticket', onPressed: () => context.go('/app', extra: {'tab': 4})),
               ],
             ),
           ),
         ],
+        ),
       ),
     );
+  }
+
+  void _show(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -113,15 +124,16 @@ class _MediaFrame extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({required this.icon, required this.label});
+  const _Action({required this.icon, required this.label, required this.onPressed});
 
   final IconData icon;
   final String label;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: onPressed,
       icon: Icon(icon, size: 18),
       label: Text(label),
     );

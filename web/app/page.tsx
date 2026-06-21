@@ -21,6 +21,7 @@ import { TopbarActions } from '@/components/TopbarActions';
 
 const events = [
   {
+    slug: 'blankets-and-wine-nairobi',
     title: 'Blankets & Wine Nairobi',
     venue: 'Uhuru Gardens',
     date: 'May 31, 2025',
@@ -30,6 +31,7 @@ const events = [
     image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=900&q=80',
   },
   {
+    slug: 'koroga-festival-2025',
     title: 'Koroga Festival 2025',
     venue: 'The Carnivore Grounds',
     date: 'Jun 8, 2025',
@@ -39,6 +41,7 @@ const events = [
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=80',
   },
   {
+    slug: 'sauti-sol-live-in-concert',
     title: 'Sauti Sol Live in Concert',
     venue: 'KICC, Nairobi',
     date: 'Jun 14, 2025',
@@ -48,6 +51,7 @@ const events = [
     image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80',
   },
   {
+    slug: 'nairobi-comedy-night',
     title: 'Nairobi Comedy Night',
     venue: 'The Standup Lounge',
     date: 'May 30, 2025',
@@ -142,7 +146,7 @@ export default function HomePage() {
             </div>
             <div className="event-strip">
               {events.map((event) => (
-                <article className="event-tile" key={event.title}>
+                <Link className="event-tile" href={`/events/${event.slug}`} key={event.title}>
                   <div className="event-poster" style={{ backgroundImage: `url(${event.image})` }}>
                     <strong>{event.title.replace(' Nairobi', '').replace(' 2025', '')}</strong>
                     <span>{event.tag}</span>
@@ -151,7 +155,7 @@ export default function HomePage() {
                   <p><MapPin size={14} /> {event.venue}</p>
                   <p>{event.date} - {event.time}</p>
                   <b>{event.price}</b>
-                </article>
+                </Link>
               ))}
               <button className="floating-next" aria-label="Next events"><ChevronRight size={22} /></button>
             </div>
