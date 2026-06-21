@@ -6,8 +6,8 @@ const paramsSchema = z.object({
   bankId: z.string().uuid(),
 });
 
-export async function GET(_request: Request, { params }: { params: { bankId: string } }) {
-  const parsed = paramsSchema.safeParse(params);
+export async function GET(_request: Request, { params }: { params: Promise<{ bankId: string }> }) {
+  const parsed = paramsSchema.safeParse(await params);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid bank id' }, { status: 400 });
   }
