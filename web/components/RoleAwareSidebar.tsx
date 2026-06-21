@@ -9,7 +9,7 @@ import {
   Menu,
   UserPlus,
 } from 'lucide-react';
-import { dashboardForRole, navItems, normalizeRole, roleLabels, type AppRole } from '@/lib/roles';
+import { dashboardForRole, navigationForRole, normalizeRole, roleLabels, type AppRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export function RoleAwareSidebar() {
@@ -61,7 +61,7 @@ export function RoleAwareSidebar() {
     window.location.href = '/login';
   }
 
-  const visibleNav = navItems.filter((item) => !item.roles || item.roles.includes(role));
+  const visibleNav = navigationForRole(role);
   const initials = fullName
     .split(' ')
     .map((part) => part[0])

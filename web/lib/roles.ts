@@ -98,3 +98,28 @@ export const navItems: NavItem[] = [
   { label: 'Venue', href: '/dashboard/venue', icon: BriefcaseBusiness, roles: ['venue_owner', 'super_admin'] },
   { label: 'Admin', href: '/admin', icon: Shield, roles: ['super_admin'] },
 ];
+
+export const organizerNavItems: NavItem[] = [
+  { label: 'Command Center', href: '/dashboard/organizer', icon: Users },
+  { label: 'My Events', href: '/dashboard/organizer/events', icon: CalendarDays },
+  { label: 'Create Event', href: '/dashboard/organizer/create', icon: Ticket },
+  { label: 'Ticketing', href: '/dashboard/organizer/ticketing', icon: Ticket },
+  { label: 'Marketing', href: '/dashboard/organizer/marketing', icon: Megaphone },
+  { label: 'Operations', href: '/dashboard/organizer/operations', icon: Shield },
+  { label: 'Staff', href: '/dashboard/organizer/staff', icon: BadgeCheck },
+  { label: 'Volunteers', href: '/dashboard/organizer/volunteers', icon: HandHeart },
+  { label: 'Vendors', href: '/dashboard/organizer/vendors', icon: Store },
+  { label: 'Foodo', href: '/dashboard/organizer/foodo', icon: Utensils },
+  { label: 'Triplink', href: '/dashboard/organizer/triplink', icon: Plane },
+  { label: 'Sponsors', href: '/dashboard/organizer/sponsors', icon: BriefcaseBusiness },
+  { label: 'Finance', href: '/dashboard/organizer/finance', icon: WalletCards },
+  { label: 'Analytics', href: '/dashboard/organizer/analytics', icon: MapPinned },
+  { label: 'Solco', href: '/dashboard/organizer/solco', icon: Users },
+  { label: 'Documents', href: '/dashboard/organizer/documents', icon: BriefcaseBusiness },
+  { label: 'Settings', href: '/dashboard/organizer/settings', icon: Shield },
+];
+
+export function navigationForRole(role: AppRole) {
+  if (role === 'organizer') return organizerNavItems;
+  return navItems.filter((item) => !item.roles || item.roles.includes(role));
+}
