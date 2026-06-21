@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Enter a valid email address and password.' }, { status: 400 });
   }
 
-  const response = NextResponse.json({ ok: true });
+  const cookieUpdates: { name: string; value: string; options: Parameters<NextResponse['cookies']['set']>[2] }[] = [];
   const supabase = createServerClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => request.cookies.getAll(),
-      setAll: (cookies) => cookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options)),
+      setAll: (cookies) => cookies.forEach(({ name, value, options }) => cookieUpdates.push({ name, value, options })),
     },
   });
 
@@ -42,8 +42,7 @@ export async function POST(request: NextRequest) {
 
   const { data: roleRow } = await supabase.from('users').select('role').eq('id', data.user.id).maybeSingle();
   const role = normalizeRole(roleRow?.role ?? data.user.app_metadata?.role);
-  return NextResponse.json(
-    { ok: true, dashboard: dashboardForRole(role) },
-    { headers: response.headers },
-  );
+  const response = NextResponse.json({ ok: true, dashboard: dashboardForRole(role) });
+  cookieUpdates.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+  return response;
 }
