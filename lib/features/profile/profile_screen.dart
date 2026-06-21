@@ -15,15 +15,29 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     final phone = user?.phone ?? '';
+    final email = user?.email ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => _logout(context),
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           const CircleAvatar(radius: 44, child: Icon(Icons.person, size: 44)),
           const SizedBox(height: 16),
-          Center(child: Text(phone, style: Theme.of(context).textTheme.titleMedium)),
+          Center(child: Text(email, style: Theme.of(context).textTheme.titleMedium)),
+          if (phone.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Center(child: Text(phone, style: Theme.of(context).textTheme.bodyMedium)),
+          ],
           const SizedBox(height: 28),
           const ListTile(title: Text('Bio')),
           const ListTile(title: Text('Events Attended')),

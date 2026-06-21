@@ -11,7 +11,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _phone = TextEditingController();
+  final _email = TextEditingController();
   final _password = TextEditingController();
   var _loading = false;
 
@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     try {
       await AuthService(Supabase.instance.client).signIn(
-        phoneNumber: _phone.text.trim(),
+        email: _email.text.trim(),
         password: _password.text,
       );
       if (mounted) context.go('/app');
@@ -56,9 +56,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 48),
             TextField(
-              controller: _phone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number'),
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: const InputDecoration(labelText: 'Email Address'),
             ),
             const SizedBox(height: 16),
             TextField(

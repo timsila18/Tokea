@@ -10,6 +10,7 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
+import { AuthControls } from '@/components/AuthControls';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span>Super Admin</span>
               </div>
             </div>
+            <AuthControls />
           </aside>
           <main className="page">{children}</main>
         </div>

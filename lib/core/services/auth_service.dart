@@ -8,6 +8,7 @@ class AuthService {
 
   Future<void> signUp({
     required String fullName,
+    required String email,
     required String phoneNumber,
     required String password,
     required AppRole role,
@@ -15,10 +16,11 @@ class AuthService {
     String? businessName,
   }) async {
     final authResponse = await _supabase.auth.signUp(
-      phone: phoneNumber,
+      email: email,
       password: password,
       data: {
         'full_name': fullName,
+        'phone_number': phoneNumber,
         'role': role.value,
       },
     );
@@ -63,11 +65,11 @@ class AuthService {
   }
 
   Future<void> signIn({
-    required String phoneNumber,
+    required String email,
     required String password,
   }) async {
     await _supabase.auth.signInWithPassword(
-      phone: phoneNumber,
+      email: email,
       password: password,
     );
   }

@@ -13,6 +13,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _name = TextEditingController();
+  final _email = TextEditingController();
   final _phone = TextEditingController();
   final _password = TextEditingController();
   final _organization = TextEditingController();
@@ -25,6 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       await AuthService(Supabase.instance.client).signUp(
         fullName: _name.text.trim(),
+        email: _email.text.trim(),
         phoneNumber: _phone.text.trim(),
         password: _password.text,
         role: _role,
@@ -77,9 +79,16 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           const SizedBox(height: 16),
           TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(labelText: 'Email Address'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
             controller: _phone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone Number'),
+            decoration: const InputDecoration(labelText: 'Kenyan Phone Number'),
           ),
           if (needsOrganization) ...[
             const SizedBox(height: 16),

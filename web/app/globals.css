@@ -130,13 +130,59 @@ button {
 .sidebar-user {
   align-items: center;
   border-top: 1px solid var(--line);
-  bottom: 0;
+  bottom: 104px;
   display: flex;
   gap: 12px;
   left: 0;
   padding: 20px 18px 24px;
   position: absolute;
   right: 0;
+}
+
+.auth-controls {
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  display: grid;
+  gap: 8px;
+  left: 0;
+  padding: 16px 18px 18px;
+  position: absolute;
+  right: 0;
+}
+
+.auth-controls a,
+.auth-controls button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: #fff;
+  display: flex;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.auth-controls a:last-child {
+  background: linear-gradient(135deg, #f0c142, #d99f20);
+  border: 0;
+  color: #090909;
+}
+
+.auth-controls.signed-in span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-controls.signed-in button {
+  background: rgba(255, 45, 122, 0.09);
+  color: var(--pink);
 }
 
 .avatar {
@@ -958,6 +1004,102 @@ button {
   color: var(--danger);
 }
 
+.auth-page {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.auth-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+  display: grid;
+  gap: 14px;
+  max-width: 460px;
+  padding: 30px;
+  width: 100%;
+}
+
+.auth-brand {
+  color: var(--gold);
+  font-size: 42px;
+  font-weight: 950;
+  letter-spacing: -1.8px;
+  line-height: 0.9;
+}
+
+.auth-card h1,
+.auth-card p {
+  margin: 0;
+}
+
+.auth-card h1 {
+  font-size: 25px;
+  margin-top: 12px;
+}
+
+.auth-card p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-card label {
+  color: rgba(255, 255, 255, 0.76);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.auth-card input,
+.auth-card select {
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text);
+  min-height: 43px;
+  outline: 0;
+  padding: 0 12px;
+}
+
+.auth-card option {
+  background: #0b0b0c;
+}
+
+.auth-card button {
+  background: linear-gradient(135deg, #f0c142, #d99f20);
+  border: 0;
+  border-radius: 9px;
+  color: #090909;
+  font-weight: 900;
+  min-height: 44px;
+}
+
+.auth-card button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.auth-message {
+  background: rgba(255, 45, 122, 0.09);
+  border: 1px solid rgba(255, 45, 122, 0.24);
+  border-radius: 9px;
+  color: #ffd9e6;
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.auth-switch {
+  color: var(--pink);
+  font-size: 13px;
+  font-weight: 800;
+  justify-self: center;
+}
+
 .panel {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.024));
   border: 1px solid var(--line-strong);
@@ -1057,6 +1199,21 @@ button {
     justify-content: center;
   }
 
+  .auth-controls {
+    padding-inline: 13px;
+  }
+
+  .auth-controls a,
+  .auth-controls button {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .auth-controls a span,
+  .auth-controls.signed-in span {
+    display: none;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -1108,6 +1265,11 @@ button {
 
   .sidebar-user {
     display: none;
+  }
+
+  .auth-controls {
+    bottom: auto;
+    position: static;
   }
 
   .dashboard-screen {
