@@ -19,25 +19,35 @@ export default function LoginPage() {
     setLoading(true);
     setMessage('');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    let timeoutId: number | undefined;
 
-    setLoading(false);
+    try {
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('Login is taking too long. Please check your connection and try again.')), 15_000);
+      });
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email: email.trim(), password }),
+        timeout,
+      ]);
 
-    if (error) {
-      setMessage(error.message);
-      return;
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      const userId = data.user?.id;
+      const { data: userRole } = userId
+        ? await supabase.from('users').select('role').eq('id', userId).maybeSingle()
+        : { data: null };
+
+      router.replace(dashboardForRole(userRole?.role ?? data.user?.user_metadata?.role));
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to login. Please try again.');
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      setLoading(false);
     }
-
-    const userId = data.user?.id;
-    const { data: userRole } = userId
-      ? await supabase.from('users').select('role').eq('id', userId).maybeSingle()
-      : { data: null };
-
-    router.push(dashboardForRole(userRole?.role ?? data.user?.user_metadata?.role));
-    router.refresh();
   }
 
   return (
