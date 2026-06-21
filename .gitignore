@@ -11,6 +11,7 @@ node_modules/
 web/node_modules/
 web/.next/
 web/out/
+supabase/.temp/
 android/.gradle/
 android/local.properties
 ios/Pods/

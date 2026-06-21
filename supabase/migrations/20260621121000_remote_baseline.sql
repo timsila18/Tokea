@@ -1,0 +1,2 @@
+-- Remote baseline migration already applied to the Supabase project.
+-- This placeholder keeps local migration history aligned for future pushes.

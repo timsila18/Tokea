@@ -21,6 +21,7 @@ export default function OrganizerDashboardPage() {
           ['Tasks', 'event_tasks', 'Event manager only'],
           ['Workspace', 'workspace_messages', 'Event team only'],
           ['Finance', 'event_finances', 'Event manager only'],
+          ['Withdrawals', 'payout_requests', '/dashboard/organizer/withdrawals'],
         ]}
       />
     </DashboardPage>
