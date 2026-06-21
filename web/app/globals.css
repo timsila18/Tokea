@@ -1320,6 +1320,16 @@ button {
   margin: 0;
 }
 
+.access-panel {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.access-panel svg {
+  color: var(--pink);
+}
+
 .withdrawals-page {
   display: grid;
   gap: 22px;

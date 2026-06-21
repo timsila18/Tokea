@@ -1,10 +1,11 @@
 import { ShieldAlert } from 'lucide-react';
 import { AdminMetrics } from '@/components/AdminMetrics';
 import { ModuleTable } from '@/components/ModuleTable';
+import { RoleGate } from '@/components/RoleGate';
 
 export default function AdminPage() {
   return (
-    <>
+    <RoleGate allowedRoles={['super_admin']}>
       <div className="topbar">
         <div>
           <h1 style={{ fontSize: 42 }}>Admin Command Center</h1>
@@ -25,6 +26,6 @@ export default function AdminPage() {
           ['Platform Settings', 'Audit changes', 'platform_settings'],
         ]}
       />
-    </>
+    </RoleGate>
   );
 }

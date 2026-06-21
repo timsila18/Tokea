@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { RoleGate } from '@/components/RoleGate';
 
 type Bank = {
   id: string;
@@ -77,15 +78,16 @@ export default function OrganizerWithdrawalsPage() {
   }
 
   return (
-    <section className="withdrawals-page">
-      <div className="topbar">
-        <div>
-          <h1>Withdrawal Requests</h1>
-          <p>Request organizer payouts to M-Pesa or a Kenyan bank account. Admin processing target is within 4 hours.</p>
+    <RoleGate allowedRoles={['organizer', 'super_admin']}>
+      <section className="withdrawals-page">
+        <div className="topbar">
+          <div>
+            <h1>Withdrawal Requests</h1>
+            <p>Request organizer payouts to M-Pesa or a Kenyan bank account. Admin processing target is within 4 hours.</p>
+          </div>
         </div>
-      </div>
 
-      <form className="withdrawal-card" onSubmit={submit}>
+        <form className="withdrawal-card" onSubmit={submit}>
         <label>
           Amount (KES)
           <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="25000" required />
@@ -140,7 +142,8 @@ export default function OrganizerWithdrawalsPage() {
 
         {message ? <div className="auth-message">{message}</div> : null}
         <button type="submit" disabled={loading || amountCents <= 0}>{loading ? 'Submitting...' : 'Request Withdrawal'}</button>
-      </form>
-    </section>
+        </form>
+      </section>
+    </RoleGate>
   );
 }
