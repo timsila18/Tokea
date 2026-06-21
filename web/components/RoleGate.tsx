@@ -1,11 +1,10 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
-import { dashboardForRole, normalizeRole, type AppRole } from '@/lib/roles';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { dashboardForRole, type AppRole } from '@/lib/roles';
 
 type RoleGateProps = {
   allowedRoles: AppRole[];
@@ -14,28 +13,29 @@ type RoleGateProps = {
 
 export function RoleGate({ allowedRoles, children }: RoleGateProps) {
   const router = useRouter();
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
   const [dashboardHref, setDashboardHref] = useState('/dashboard/attendee');
 
   useEffect(() => {
     async function checkRole() {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
+      const response = await fetch('/api/auth/session');
+      if (response.status === 401) {
         router.replace('/login');
         return;
       }
-
-      const { data: roleRow } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-      const role = normalizeRole(roleRow?.role ?? user.user_metadata?.role);
+      if (!response.ok) {
+        setStatus('denied');
+        return;
+      }
+      const { user } = await response.json();
+      const role = user.role as AppRole;
       const dashboard = dashboardForRole(role);
       setDashboardHref(dashboard);
       setStatus(allowedRoles.includes(role) ? 'allowed' : 'denied');
     }
 
     checkRole();
-  }, [allowedRoles, router, supabase]);
+  }, [allowedRoles, router]);
 
   if (status === 'checking') {
     return (

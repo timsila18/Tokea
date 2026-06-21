@@ -1,29 +1,24 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { dashboardForRole } from '@/lib/roles';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export default function DashboardRouterPage() {
   const router = useRouter();
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   useEffect(() => {
     async function routeUser() {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
+      const response = await fetch('/api/auth/session');
+      if (!response.ok) {
         router.replace('/login');
         return;
       }
-
-      const { data: roleRow } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-      router.replace(dashboardForRole(roleRow?.role ?? user.user_metadata?.role));
+      const { user } = await response.json();
+      router.replace(dashboardForRole(user.role));
     }
 
     routeUser();
-  }, [router, supabase]);
+  }, [router]);
 
   return (
     <section className="section panel">

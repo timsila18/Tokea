@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -9,12 +9,10 @@ import {
   Menu,
   UserPlus,
 } from 'lucide-react';
-import { dashboardForRole, navigationForRole, normalizeRole, roleLabels, type AppRole } from '@/lib/roles';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { dashboardForRole, navigationForRole, roleLabels, type AppRole } from '@/lib/roles';
 
 export function RoleAwareSidebar() {
   const pathname = usePathname();
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState<string | null>(null);
   const [fullName, setFullName] = useState('Guest');
   const [role, setRole] = useState<AppRole>('attendee');
@@ -23,41 +21,32 @@ export function RoleAwareSidebar() {
     let mounted = true;
 
     async function loadIdentity() {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      const response = await fetch('/api/auth/session');
       if (!mounted) return;
-
-      setEmail(user?.email ?? null);
-      if (!user) {
+      if (!response.ok) {
+        setEmail(null);
         setFullName('Guest');
         setRole('attendee');
         return;
       }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', user.id)
-        .maybeSingle();
-      const { data: userRole } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+      const { user } = await response.json();
       if (!mounted) return;
-
-      setFullName(profile?.full_name ?? user.user_metadata?.full_name ?? user.email ?? 'Tokea User');
-      // UI personalization only. Server authorization still uses database-backed checks.
-      setRole(normalizeRole(userRole?.role ?? profile?.role ?? user.user_metadata?.role));
+      setEmail(user.email);
+      setFullName(user.fullName);
+      setRole(user.role);
     }
 
     loadIdentity();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => loadIdentity());
+    window.addEventListener('tokea-auth-changed', loadIdentity);
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
+      window.removeEventListener('tokea-auth-changed', loadIdentity);
     };
-  }, [supabase]);
+  }, []);
 
   async function logout() {
-    await supabase.auth.signOut();
+    await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   }
 
