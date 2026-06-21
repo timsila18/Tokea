@@ -68,6 +68,16 @@ Tagline: **Don't Hear About It. Tokea.**
 - Rewards, referrals, merchandise sales, merchandise QR collection, vendor finance, logistics operations, and health/safety modules.
 - RLS, storage buckets, wallet/reward triggers, and realtime publication coverage for food, transport, maps, schedules, wallet items, rewards, referrals, merch, logistics, and compliance.
 
+## Final Phase Included
+
+- Next.js web platform foundation in `web/` using the same Supabase backend and realtime tables as Flutter.
+- SEO public routes for events, organizers, venues, communities, reels, and global search.
+- Web dashboards for attendee, organizer, vendor, sponsor, staff/volunteer, and super admin.
+- Schema.org event markup, Open Graph, Twitter cards, canonical URLs, and search-friendly route structure.
+- Centralized audit trail, notification engine, analytics warehouse foundation, global search index, security events, rate-limit records, platform settings, media assets, and backup run tables.
+- Secure Next.js API route foundations with validation for checkout, notifications, and audit writes.
+- Security headers middleware, upload validation helper, CI workflow, QA checklist, deployment readiness, app store readiness, and final audit documentation.
+
 ## Not Included Yet
 
 - Live ticket checkout charging.
@@ -82,5 +92,6 @@ Tagline: **Don't Hear About It. Tokea.**
 2. Add your Supabase URL and public anon/publishable key.
 3. Run `flutter pub get`.
 4. Apply `supabase/schema.sql` in your Supabase SQL editor.
+5. For web: `cd web`, copy `.env.example` to `.env.local`, then run `npm install` and `npm run dev`.
 
 Supabase email confirmation and OTP flows should remain disabled for this product flow.

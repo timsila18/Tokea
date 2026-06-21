@@ -377,6 +377,37 @@ create type public.reward_source as enum (
   'merchandise_purchase'
 );
 
+create type public.audit_action_type as enum (
+  'create',
+  'update',
+  'delete',
+  'approve',
+  'reject',
+  'refund',
+  'transfer',
+  'payout',
+  'verification',
+  'role_change',
+  'system_setting',
+  'security_event'
+);
+
+create type public.notification_channel as enum (
+  'push',
+  'in_app',
+  'email',
+  'sms_ready',
+  'whatsapp_ready'
+);
+
+create type public.risk_status as enum (
+  'open',
+  'reviewing',
+  'cleared',
+  'blocked',
+  'escalated'
+);
+
 create table public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   phone_number text not null unique,
@@ -1696,6 +1727,118 @@ create table public.content_reports (
   created_at timestamptz not null default now()
 );
 
+create table public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid references public.profiles(id) on delete set null,
+  action_type public.audit_action_type not null,
+  target_table text not null,
+  target_id uuid,
+  summary text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  ip_address inet,
+  user_agent text,
+  created_at timestamptz not null default now()
+);
+
+create table public.analytics_events (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete set null,
+  event_id uuid references public.events(id) on delete set null,
+  event_name text not null,
+  source text not null default 'web',
+  properties jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table public.global_search_index (
+  id uuid primary key default gen_random_uuid(),
+  entity_table text not null,
+  entity_id uuid not null,
+  title text not null,
+  subtitle text,
+  keywords text not null default '',
+  search_vector tsvector generated always as (
+    to_tsvector('english', coalesce(title, '') || ' ' || coalesce(subtitle, '') || ' ' || coalesce(keywords, ''))
+  ) stored,
+  public_url text,
+  updated_at timestamptz not null default now(),
+  unique (entity_table, entity_id)
+);
+
+create table public.notification_events (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete cascade,
+  channel public.notification_channel not null default 'in_app',
+  title text not null,
+  body text,
+  provider text,
+  provider_message_id text,
+  status text not null default 'queued',
+  data jsonb not null default '{}'::jsonb,
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.security_events (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete set null,
+  risk_type text not null,
+  severity public.incident_severity not null default 'medium',
+  status public.risk_status not null default 'open',
+  target_table text,
+  target_id uuid,
+  evidence jsonb not null default '{}'::jsonb,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.rate_limit_events (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete set null,
+  ip_address inet,
+  action_key text not null,
+  window_start timestamptz not null default date_trunc('minute', now()),
+  attempt_count integer not null default 1,
+  blocked boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (profile_id, ip_address, action_key, window_start)
+);
+
+create table public.platform_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  description text,
+  updated_by uuid references public.profiles(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create table public.media_assets (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid references public.profiles(id) on delete set null,
+  bucket_id text not null,
+  storage_path text not null,
+  media_type text not null,
+  file_size_bytes bigint,
+  checksum text,
+  moderation_status public.moderation_status not null default 'active',
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique (bucket_id, storage_path)
+);
+
+create table public.backup_runs (
+  id uuid primary key default gen_random_uuid(),
+  backup_type text not null,
+  status text not null default 'planned',
+  storage_location text,
+  checksum text,
+  started_at timestamptz,
+  completed_at timestamptz,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 create index events_status_starts_at_idx on public.events(status, starts_at);
 create index events_organizer_id_idx on public.events(organizer_id);
 create index events_trending_idx on public.events(trending_score desc, starts_at);
@@ -1734,6 +1877,12 @@ create index rewards_profile_created_idx on public.rewards(profile_id, created_a
 create index referrals_referrer_idx on public.referrals(referrer_id);
 create index logistics_operations_event_status_idx on public.logistics_operations(event_id, status);
 create index health_safety_event_status_idx on public.health_safety_records(event_id, status);
+create index audit_logs_target_idx on public.audit_logs(target_table, target_id, created_at desc);
+create index analytics_events_name_created_idx on public.analytics_events(event_name, created_at desc);
+create index global_search_vector_idx on public.global_search_index using gin(search_vector);
+create index notification_events_profile_status_idx on public.notification_events(profile_id, status, created_at desc);
+create index security_events_status_severity_idx on public.security_events(status, severity, created_at desc);
+create index media_assets_bucket_path_idx on public.media_assets(bucket_id, storage_path);
 create index community_posts_channel_id_created_at_idx on public.community_posts(channel_id, created_at desc);
 create index reels_created_at_idx on public.reels(created_at desc);
 create index follows_profile_target_idx on public.follows(profile_id, target_type);
@@ -1961,6 +2110,15 @@ alter table public.reel_likes enable row level security;
 alter table public.reel_comments enable row level security;
 alter table public.event_reviews enable row level security;
 alter table public.content_reports enable row level security;
+alter table public.audit_logs enable row level security;
+alter table public.analytics_events enable row level security;
+alter table public.global_search_index enable row level security;
+alter table public.notification_events enable row level security;
+alter table public.security_events enable row level security;
+alter table public.rate_limit_events enable row level security;
+alter table public.platform_settings enable row level security;
+alter table public.media_assets enable row level security;
+alter table public.backup_runs enable row level security;
 
 create policy "users_read_own_or_admin" on public.users
 for select to authenticated
@@ -3180,6 +3338,54 @@ for all to authenticated
 using (public.is_super_admin())
 with check (public.is_super_admin());
 
+create policy "audit_logs_admin_read" on public.audit_logs
+for select to authenticated
+using (public.is_super_admin());
+
+create policy "analytics_events_insert_own" on public.analytics_events
+for insert to authenticated
+with check (profile_id is null or profile_id = (select auth.uid()));
+
+create policy "analytics_events_admin_read" on public.analytics_events
+for select to authenticated
+using (public.is_super_admin());
+
+create policy "global_search_read" on public.global_search_index
+for select to authenticated
+using (true);
+
+create policy "notification_events_own_read" on public.notification_events
+for select to authenticated
+using (profile_id = (select auth.uid()) or public.is_super_admin());
+
+create policy "notification_events_admin_write" on public.notification_events
+for all to authenticated
+using (public.is_super_admin())
+with check (public.is_super_admin());
+
+create policy "security_events_admin_all" on public.security_events
+for all to authenticated
+using (public.is_super_admin())
+with check (public.is_super_admin());
+
+create policy "rate_limit_events_admin_read" on public.rate_limit_events
+for select to authenticated
+using (public.is_super_admin());
+
+create policy "platform_settings_admin_all" on public.platform_settings
+for all to authenticated
+using (public.is_super_admin())
+with check (public.is_super_admin());
+
+create policy "media_assets_owner_or_admin" on public.media_assets
+for all to authenticated
+using (owner_id = (select auth.uid()) or public.is_super_admin())
+with check (owner_id = (select auth.uid()) or public.is_super_admin());
+
+create policy "backup_runs_admin_read" on public.backup_runs
+for select to authenticated
+using (public.is_super_admin());
+
 create policy "event_media_storage_read" on storage.objects
 for select to authenticated
 using (bucket_id in ('event-media', 'organizer-assets', 'venue-media', 'community-media'));
@@ -3375,6 +3581,106 @@ revoke all on function private.notify_followers_new_event() from public;
 create trigger notify_followers_new_event_after_insert
 after insert on public.events
 for each row execute function private.notify_followers_new_event();
+
+create or replace function private.write_audit_log()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare
+  target_id uuid;
+  action public.audit_action_type;
+begin
+  target_id := coalesce(new.id, old.id);
+  action := case tg_op
+    when 'INSERT' then 'create'::public.audit_action_type
+    when 'UPDATE' then 'update'::public.audit_action_type
+    when 'DELETE' then 'delete'::public.audit_action_type
+  end;
+
+  insert into public.audit_logs (actor_id, action_type, target_table, target_id, summary, metadata)
+  values ((select auth.uid()), action, tg_table_name, target_id, tg_op || ' on ' || tg_table_name, jsonb_build_object('operation', tg_op));
+
+  return coalesce(new, old);
+end;
+$$;
+
+revoke all on function private.write_audit_log() from public;
+
+create trigger audit_events_changes
+after insert or update or delete on public.events
+for each row execute function private.write_audit_log();
+
+create trigger audit_ticket_orders_changes
+after insert or update or delete on public.ticket_orders
+for each row execute function private.write_audit_log();
+
+create trigger audit_ticket_refunds_changes
+after insert or update or delete on public.ticket_refunds
+for each row execute function private.write_audit_log();
+
+create trigger audit_ticket_transfers_changes
+after insert or update or delete on public.ticket_transfers
+for each row execute function private.write_audit_log();
+
+create trigger audit_payout_requests_changes
+after insert or update or delete on public.payout_requests
+for each row execute function private.write_audit_log();
+
+create trigger audit_organizer_verification_changes
+after insert or update or delete on public.organizer_verification
+for each row execute function private.write_audit_log();
+
+create trigger audit_platform_settings_changes
+after insert or update or delete on public.platform_settings
+for each row execute function private.write_audit_log();
+
+create or replace function private.index_event_for_search()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+begin
+  insert into public.global_search_index (entity_table, entity_id, title, subtitle, keywords, public_url)
+  values ('events', new.id, new.title, new.location_name, coalesce(new.description, '') || ' ' || coalesce(new.city, ''), '/events/' || coalesce(new.share_slug, new.id::text))
+  on conflict (entity_table, entity_id) do update
+    set title = excluded.title,
+        subtitle = excluded.subtitle,
+        keywords = excluded.keywords,
+        public_url = excluded.public_url,
+        updated_at = now();
+
+  return new;
+end;
+$$;
+
+revoke all on function private.index_event_for_search() from public;
+
+create trigger index_event_for_search_after_write
+after insert or update on public.events
+for each row execute function private.index_event_for_search();
+
+create or replace function private.mirror_notification_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+begin
+  insert into public.notification_events (profile_id, channel, title, body, status, data, sent_at)
+  values (new.profile_id, 'in_app', new.title, new.body, 'sent', new.data, now());
+
+  return new;
+end;
+$$;
+
+revoke all on function private.mirror_notification_event() from public;
+
+create trigger mirror_notification_event_after_insert
+after insert on public.notifications
+for each row execute function private.mirror_notification_event();
 
 create or replace function private.notify_followers_published_event()
 returns trigger
@@ -3958,3 +4264,10 @@ alter publication supabase_realtime add table public.merchandise_orders;
 alter publication supabase_realtime add table public.vendor_finances;
 alter publication supabase_realtime add table public.logistics_operations;
 alter publication supabase_realtime add table public.health_safety_records;
+alter publication supabase_realtime add table public.audit_logs;
+alter publication supabase_realtime add table public.analytics_events;
+alter publication supabase_realtime add table public.global_search_index;
+alter publication supabase_realtime add table public.notification_events;
+alter publication supabase_realtime add table public.security_events;
+alter publication supabase_realtime add table public.platform_settings;
+alter publication supabase_realtime add table public.media_assets;

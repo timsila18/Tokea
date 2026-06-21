@@ -5,6 +5,11 @@
 .env
 build/
 coverage/
+node_modules/
+.next/
+web/node_modules/
+web/.next/
+web/out/
 android/.gradle/
 android/local.properties
 ios/Pods/
