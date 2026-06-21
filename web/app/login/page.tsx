@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { dashboardForRole } from '@/components/RoleAwareSidebar';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export default function LoginPage() {
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     setMessage('');
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -30,7 +31,12 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/');
+    const userId = data.user?.id;
+    const { data: userRole } = userId
+      ? await supabase.from('users').select('role').eq('id', userId).maybeSingle()
+      : { data: null };
+
+    router.push(dashboardForRole(userRole?.role ?? data.user?.user_metadata?.role));
     router.refresh();
   }
 

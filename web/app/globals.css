@@ -131,12 +131,14 @@ button {
   align-items: center;
   border-top: 1px solid var(--line);
   bottom: 104px;
+  color: inherit;
   display: flex;
   gap: 12px;
   left: 0;
   padding: 20px 18px 24px;
   position: absolute;
   right: 0;
+  text-decoration: none;
 }
 
 .auth-controls {
