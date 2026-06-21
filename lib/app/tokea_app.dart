@@ -5,6 +5,12 @@ import '../core/theme/tokea_theme.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/checkin/checkin_scanner_screen.dart';
+import '../features/experience/attendee_experience_hub_screen.dart';
+import '../features/experience/foodo_screen.dart';
+import '../features/experience/logistics_health_screen.dart';
+import '../features/experience/maps_schedule_screen.dart';
+import '../features/experience/rewards_merch_screen.dart';
+import '../features/experience/triplink_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/organizers/ai_event_manager_screen.dart';
 import '../features/organizers/analytics_dashboard_screen.dart';
@@ -50,6 +56,42 @@ final _router = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/experience',
+      builder: (context, state) => const AttendeeExperienceHubScreen(),
+    ),
+    GoRoute(
+      path: '/experience/food',
+      builder: (context, state) => const FoodoScreen(),
+    ),
+    GoRoute(
+      path: '/experience/transport',
+      builder: (context, state) => const TriplinkScreen(),
+    ),
+    GoRoute(
+      path: '/experience/maps',
+      builder: (context, state) => const EventMapsScreen(),
+    ),
+    GoRoute(
+      path: '/experience/schedule',
+      builder: (context, state) => const EventScheduleScreen(),
+    ),
+    GoRoute(
+      path: '/experience/rewards',
+      builder: (context, state) => const RewardsReferralsScreen(),
+    ),
+    GoRoute(
+      path: '/experience/merch',
+      builder: (context, state) => const MerchandiseScreen(),
+    ),
+    GoRoute(
+      path: '/operations/logistics',
+      builder: (context, state) => const LogisticsOperationsScreen(),
+    ),
+    GoRoute(
+      path: '/operations/health-safety',
+      builder: (context, state) => const HealthSafetyScreen(),
     ),
     GoRoute(
       path: '/check-in',

@@ -65,6 +65,16 @@ class EventCommandCenterScreen extends StatelessWidget {
             icon: const Icon(Icons.warning_amber_outlined),
             label: const Text('Incident Center'),
           ),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/operations/logistics'),
+            icon: const Icon(Icons.inventory_2_outlined),
+            label: const Text('Logistics Operations'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/operations/health-safety'),
+            icon: const Icon(Icons.health_and_safety_outlined),
+            label: const Text('Health & Safety'),
+          ),
         ],
       ),
     );

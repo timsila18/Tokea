@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -28,6 +29,12 @@ class DiscoverScreen extends StatelessWidget {
               prefixIcon: Icon(Icons.search),
               labelText: 'Search events, artists, venues, organizers, categories',
             ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => context.go('/experience'),
+            icon: const Icon(Icons.wallet_outlined),
+            label: const Text('Open Event-Day Experience Hub'),
           ),
           const SizedBox(height: 20),
           Wrap(

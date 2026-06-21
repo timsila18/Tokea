@@ -324,6 +324,59 @@ create type public.approval_status as enum (
   'changes_requested'
 );
 
+create type public.food_application_status as enum (
+  'submitted',
+  'approved',
+  'rejected',
+  'modifications_requested'
+);
+
+create type public.food_order_status as enum (
+  'ordered',
+  'prepared',
+  'ready',
+  'collected',
+  'cancelled',
+  'refunded'
+);
+
+create type public.transport_booking_status as enum (
+  'booked',
+  'boarded',
+  'no_show',
+  'completed',
+  'cancelled',
+  'refunded'
+);
+
+create type public.logistics_status as enum (
+  'pending',
+  'in_progress',
+  'ready',
+  'blocked',
+  'completed'
+);
+
+create type public.wallet_item_type as enum (
+  'ticket',
+  'food_pass',
+  'transport_pass',
+  'vip_access',
+  'coupon',
+  'reward',
+  'merchandise_pass'
+);
+
+create type public.reward_source as enum (
+  'ticket_purchase',
+  'food_purchase',
+  'transport_purchase',
+  'referral',
+  'event_attendance',
+  'community_engagement',
+  'merchandise_purchase'
+);
+
 create table public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   phone_number text not null unique,
@@ -1148,6 +1201,306 @@ create table public.approval_workflows (
   created_at timestamptz not null default now()
 );
 
+create table public.food_vendors (
+  id uuid primary key default gen_random_uuid(),
+  vendor_id uuid references public.vendors(id) on delete set null,
+  profile_id uuid references public.profiles(id) on delete set null,
+  vendor_name text not null,
+  logo_url text,
+  cuisine_type text,
+  menu_summary text,
+  pricing_summary text,
+  rating_average numeric(3,2) not null default 0,
+  review_count integer not null default 0,
+  past_event_count integer not null default 0,
+  availability jsonb not null default '{}'::jsonb,
+  licensing_document_paths text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create table public.food_vendor_applications (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  food_vendor_id uuid not null references public.food_vendors(id) on delete cascade,
+  status public.food_application_status not null default 'submitted',
+  proposal_path text,
+  menu_path text,
+  requirements text,
+  requested_stall_space text,
+  assigned_stall_id uuid,
+  assigned_category text,
+  vendor_fee_cents integer not null default 0,
+  revenue_share_percent numeric(5,2) not null default 0,
+  organizer_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (event_id, food_vendor_id)
+);
+
+create table public.food_stalls (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  stall_number text not null,
+  food_vendor_id uuid references public.food_vendors(id) on delete set null,
+  location text,
+  power_requirements text,
+  water_requirements text,
+  setup_status public.logistics_status not null default 'pending',
+  inspection_status public.logistics_status not null default 'pending',
+  compliance_status public.logistics_status not null default 'pending',
+  created_at timestamptz not null default now(),
+  unique (event_id, stall_number)
+);
+
+alter table public.food_vendor_applications
+  add constraint food_vendor_applications_assigned_stall_id_fkey
+  foreign key (assigned_stall_id) references public.food_stalls(id) on delete set null;
+
+create table public.food_menus (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  food_vendor_id uuid not null references public.food_vendors(id) on delete cascade,
+  item_name text not null,
+  description text,
+  price_cents integer not null check (price_cents >= 0),
+  currency text not null default 'KES',
+  category text,
+  available boolean not null default true,
+  image_url text,
+  created_at timestamptz not null default now()
+);
+
+create table public.food_orders (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  ticket_order_id uuid references public.ticket_orders(id) on delete set null,
+  buyer_id uuid not null references public.profiles(id) on delete cascade,
+  food_vendor_id uuid not null references public.food_vendors(id) on delete cascade,
+  status public.food_order_status not null default 'ordered',
+  order_number text not null unique default upper(encode(gen_random_bytes(6), 'hex')),
+  items jsonb not null default '[]'::jsonb,
+  total_cents integer not null default 0,
+  currency text not null default 'KES',
+  qr_nonce_hash text not null unique default encode(digest(gen_random_uuid()::text, 'sha256'), 'hex'),
+  ready_at timestamptz,
+  collected_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.food_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  food_order_id uuid not null references public.food_orders(id) on delete cascade,
+  food_vendor_id uuid not null references public.food_vendors(id) on delete cascade,
+  scanned_by uuid references public.profiles(id) on delete set null,
+  quantity_redeemed integer not null default 1 check (quantity_redeemed > 0),
+  status text not null default 'redeemed',
+  redeemed_at timestamptz not null default now(),
+  unique (food_order_id)
+);
+
+create table public.transport_providers (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid references public.profiles(id) on delete set null,
+  company_name text not null,
+  logo_url text,
+  fleet jsonb not null default '[]'::jsonb,
+  route_summary text,
+  capacity_total integer not null default 0,
+  pricing_summary text,
+  rating_average numeric(3,2) not null default 0,
+  review_count integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table public.transport_routes (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  transport_provider_id uuid not null references public.transport_providers(id) on delete cascade,
+  route_name text not null,
+  pickup_points jsonb not null default '[]'::jsonb,
+  dropoff_points jsonb not null default '[]'::jsonb,
+  return_route jsonb not null default '{}'::jsonb,
+  schedules jsonb not null default '[]'::jsonb,
+  price_cents integer not null default 0,
+  capacity integer not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table public.transport_bookings (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  ticket_order_id uuid references public.ticket_orders(id) on delete set null,
+  buyer_id uuid not null references public.profiles(id) on delete cascade,
+  transport_route_id uuid not null references public.transport_routes(id) on delete cascade,
+  pickup_point text not null,
+  status public.transport_booking_status not null default 'booked',
+  passenger_name text not null,
+  passenger_phone text,
+  amount_cents integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table public.transport_passes (
+  id uuid primary key default gen_random_uuid(),
+  transport_booking_id uuid not null unique references public.transport_bookings(id) on delete cascade,
+  vehicle_assignment text,
+  seat_assignment text,
+  boarding_qr_hash text not null unique default encode(digest(gen_random_uuid()::text, 'sha256'), 'hex'),
+  active boolean not null default true,
+  issued_at timestamptz not null default now(),
+  boarded_at timestamptz
+);
+
+create table public.transport_manifests (
+  id uuid primary key default gen_random_uuid(),
+  transport_route_id uuid not null references public.transport_routes(id) on delete cascade,
+  transport_booking_id uuid not null references public.transport_bookings(id) on delete cascade,
+  passenger_name text not null,
+  passenger_phone text,
+  pickup_point text not null,
+  status public.transport_booking_status not null default 'booked',
+  created_at timestamptz not null default now(),
+  unique (transport_route_id, transport_booking_id)
+);
+
+create table public.vehicle_tracking (
+  id uuid primary key default gen_random_uuid(),
+  transport_route_id uuid not null references public.transport_routes(id) on delete cascade,
+  vehicle_id text,
+  driver_profile_id uuid references public.profiles(id) on delete set null,
+  latitude numeric(10,7),
+  longitude numeric(10,7),
+  estimated_arrival_at timestamptz,
+  live_status text not null default 'scheduled',
+  delay_minutes integer not null default 0,
+  recorded_at timestamptz not null default now()
+);
+
+create table public.event_maps (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  map_name text not null,
+  map_image_url text,
+  zones jsonb not null default '[]'::jsonb,
+  entrances jsonb not null default '[]'::jsonb,
+  exits jsonb not null default '[]'::jsonb,
+  emergency_exits jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table public.event_schedules (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  title text not null,
+  description text,
+  starts_at timestamptz not null,
+  ends_at timestamptz,
+  location_label text,
+  schedule_type text not null default 'program',
+  created_at timestamptz not null default now()
+);
+
+create table public.attendee_wallet_items (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  event_id uuid references public.events(id) on delete cascade,
+  item_type public.wallet_item_type not null,
+  source_table text,
+  source_id uuid,
+  title text not null,
+  status text not null default 'active',
+  qr_hash text,
+  created_at timestamptz not null default now()
+);
+
+create table public.rewards (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  event_id uuid references public.events(id) on delete set null,
+  source public.reward_source not null,
+  points integer not null check (points <> 0),
+  description text,
+  created_at timestamptz not null default now()
+);
+
+create table public.referrals (
+  id uuid primary key default gen_random_uuid(),
+  referrer_id uuid not null references public.profiles(id) on delete cascade,
+  referred_profile_id uuid references public.profiles(id) on delete set null,
+  referral_code text not null,
+  invite_phone text,
+  registration_completed_at timestamptz,
+  purchase_completed_at timestamptz,
+  reward_points integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table public.merchandise (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  name text not null,
+  description text,
+  price_cents integer not null check (price_cents >= 0),
+  currency text not null default 'KES',
+  inventory_total integer not null default 0,
+  inventory_sold integer not null default 0,
+  image_url text,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table public.merchandise_orders (
+  id uuid primary key default gen_random_uuid(),
+  merchandise_id uuid not null references public.merchandise(id) on delete cascade,
+  buyer_id uuid not null references public.profiles(id) on delete cascade,
+  ticket_order_id uuid references public.ticket_orders(id) on delete set null,
+  quantity integer not null default 1 check (quantity > 0),
+  status text not null default 'purchased',
+  collection_qr_hash text not null unique default encode(digest(gen_random_uuid()::text, 'sha256'), 'hex'),
+  collected_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.vendor_finances (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  vendor_id uuid references public.vendors(id) on delete set null,
+  food_vendor_id uuid references public.food_vendors(id) on delete set null,
+  transport_provider_id uuid references public.transport_providers(id) on delete set null,
+  vendor_fees_cents integer not null default 0,
+  food_sales_cents integer not null default 0,
+  revenue_share_cents integer not null default 0,
+  transport_revenue_cents integer not null default 0,
+  merchandise_revenue_cents integer not null default 0,
+  vendor_payouts_cents integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create table public.logistics_operations (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  operation_type text not null,
+  title text not null,
+  status public.logistics_status not null default 'pending',
+  assigned_to uuid references public.profiles(id) on delete set null,
+  scheduled_at timestamptz,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create table public.health_safety_records (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  record_type text not null,
+  title text not null,
+  status public.logistics_status not null default 'pending',
+  responsible_profile_id uuid references public.profiles(id) on delete set null,
+  compliance_notes text,
+  document_paths text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
 alter table public.ticket_orders
   add constraint ticket_orders_promo_code_id_fkey
   foreign key (promo_code_id) references public.promo_codes(id) on delete set null;
@@ -1371,6 +1724,16 @@ create index volunteer_applications_event_status_idx on public.volunteer_applica
 create index staff_shifts_event_starts_idx on public.staff_shifts(event_id, starts_at);
 create index incident_reports_event_status_idx on public.incident_reports(event_id, status, severity);
 create index emergency_alerts_event_created_idx on public.emergency_alerts(event_id, created_at desc);
+create index food_vendor_applications_event_status_idx on public.food_vendor_applications(event_id, status);
+create index food_orders_buyer_event_idx on public.food_orders(buyer_id, event_id);
+create index transport_routes_event_provider_idx on public.transport_routes(event_id, transport_provider_id);
+create index transport_bookings_buyer_event_idx on public.transport_bookings(buyer_id, event_id);
+create index event_schedules_event_starts_idx on public.event_schedules(event_id, starts_at);
+create index wallet_items_profile_event_idx on public.attendee_wallet_items(profile_id, event_id);
+create index rewards_profile_created_idx on public.rewards(profile_id, created_at desc);
+create index referrals_referrer_idx on public.referrals(referrer_id);
+create index logistics_operations_event_status_idx on public.logistics_operations(event_id, status);
+create index health_safety_event_status_idx on public.health_safety_records(event_id, status);
 create index community_posts_channel_id_created_at_idx on public.community_posts(channel_id, created_at desc);
 create index reels_created_at_idx on public.reels(created_at desc);
 create index follows_profile_target_idx on public.follows(profile_id, target_type);
@@ -1398,7 +1761,12 @@ insert into storage.buckets (id, name, public) values
   ('workspace-files', 'workspace-files', false),
   ('workforce-documents', 'workforce-documents', false),
   ('incident-media', 'incident-media', false),
-  ('certificates', 'certificates', false)
+  ('certificates', 'certificates', false),
+  ('food-vendor-assets', 'food-vendor-assets', true),
+  ('transport-assets', 'transport-assets', true),
+  ('event-map-assets', 'event-map-assets', true),
+  ('merchandise-assets', 'merchandise-assets', true),
+  ('compliance-documents', 'compliance-documents', false)
 on conflict (id) do nothing;
 
 create or replace function public.current_user_role()
@@ -1551,6 +1919,28 @@ alter table public.event_certificates enable row level security;
 alter table public.event_announcements enable row level security;
 alter table public.organization_hierarchy enable row level security;
 alter table public.approval_workflows enable row level security;
+alter table public.food_vendors enable row level security;
+alter table public.food_vendor_applications enable row level security;
+alter table public.food_stalls enable row level security;
+alter table public.food_menus enable row level security;
+alter table public.food_orders enable row level security;
+alter table public.food_redemptions enable row level security;
+alter table public.transport_providers enable row level security;
+alter table public.transport_routes enable row level security;
+alter table public.transport_bookings enable row level security;
+alter table public.transport_passes enable row level security;
+alter table public.transport_manifests enable row level security;
+alter table public.vehicle_tracking enable row level security;
+alter table public.event_maps enable row level security;
+alter table public.event_schedules enable row level security;
+alter table public.attendee_wallet_items enable row level security;
+alter table public.rewards enable row level security;
+alter table public.referrals enable row level security;
+alter table public.merchandise enable row level security;
+alter table public.merchandise_orders enable row level security;
+alter table public.vendor_finances enable row level security;
+alter table public.logistics_operations enable row level security;
+alter table public.health_safety_records enable row level security;
 alter table public.event_comments enable row level security;
 alter table public.event_comment_likes enable row level security;
 alter table public.event_likes enable row level security;
@@ -2388,6 +2778,239 @@ for all to authenticated
 using (public.can_manage_event(event_id) or requested_by = (select auth.uid()) or approver_id = (select auth.uid()))
 with check (public.can_manage_event(event_id) or requested_by = (select auth.uid()));
 
+create policy "food_vendors_read" on public.food_vendors
+for select to authenticated
+using (true);
+
+create policy "food_vendors_owner_write" on public.food_vendors
+for all to authenticated
+using (profile_id = (select auth.uid()) or public.is_super_admin())
+with check (profile_id = (select auth.uid()) or public.is_super_admin());
+
+create policy "food_vendor_applications_participants" on public.food_vendor_applications
+for all to authenticated
+using (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+)
+with check (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+);
+
+create policy "food_stalls_visible_event" on public.food_stalls
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "food_stalls_manager_write" on public.food_stalls
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "food_menus_read" on public.food_menus
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "food_menus_vendor_or_manager_write" on public.food_menus
+for all to authenticated
+using (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+)
+with check (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+);
+
+create policy "food_orders_buyer_vendor_manager" on public.food_orders
+for all to authenticated
+using (
+  buyer_id = (select auth.uid())
+  or public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+)
+with check (
+  buyer_id = (select auth.uid())
+  or public.can_manage_event(event_id)
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+);
+
+create policy "food_redemptions_vendor_manager" on public.food_redemptions
+for all to authenticated
+using (
+  exists (
+    select 1 from public.food_orders fo
+    where fo.id = food_order_id
+      and (public.can_manage_event(fo.event_id) or fo.buyer_id = (select auth.uid()))
+  )
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+)
+with check (
+  exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+  or exists (select 1 from public.food_orders fo where fo.id = food_order_id and public.can_manage_event(fo.event_id))
+);
+
+create policy "transport_providers_read" on public.transport_providers
+for select to authenticated
+using (true);
+
+create policy "transport_providers_owner_write" on public.transport_providers
+for all to authenticated
+using (profile_id = (select auth.uid()) or public.is_super_admin())
+with check (profile_id = (select auth.uid()) or public.is_super_admin());
+
+create policy "transport_routes_read" on public.transport_routes
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "transport_routes_provider_or_manager_write" on public.transport_routes
+for all to authenticated
+using (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.transport_providers tp where tp.id = transport_provider_id and tp.profile_id = (select auth.uid()))
+)
+with check (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.transport_providers tp where tp.id = transport_provider_id and tp.profile_id = (select auth.uid()))
+);
+
+create policy "transport_bookings_buyer_provider_manager" on public.transport_bookings
+for all to authenticated
+using (
+  buyer_id = (select auth.uid())
+  or public.can_manage_event(event_id)
+  or exists (
+    select 1 from public.transport_routes tr
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tr.id = transport_route_id and tp.profile_id = (select auth.uid())
+  )
+)
+with check (
+  buyer_id = (select auth.uid())
+  or public.can_manage_event(event_id)
+);
+
+create policy "transport_passes_buyer_provider_manager" on public.transport_passes
+for select to authenticated
+using (
+  exists (
+    select 1 from public.transport_bookings tb
+    join public.transport_routes tr on tr.id = tb.transport_route_id
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tb.id = transport_booking_id
+      and (tb.buyer_id = (select auth.uid()) or public.can_manage_event(tb.event_id) or tp.profile_id = (select auth.uid()))
+  )
+);
+
+create policy "transport_manifests_provider_manager" on public.transport_manifests
+for all to authenticated
+using (
+  exists (
+    select 1 from public.transport_routes tr
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tr.id = transport_route_id and (public.can_manage_event(tr.event_id) or tp.profile_id = (select auth.uid()))
+  )
+)
+with check (
+  exists (
+    select 1 from public.transport_routes tr
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tr.id = transport_route_id and (public.can_manage_event(tr.event_id) or tp.profile_id = (select auth.uid()))
+  )
+);
+
+create policy "vehicle_tracking_provider_manager" on public.vehicle_tracking
+for all to authenticated
+using (
+  exists (
+    select 1 from public.transport_routes tr
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tr.id = transport_route_id and (public.can_manage_event(tr.event_id) or tp.profile_id = (select auth.uid()))
+  )
+)
+with check (
+  exists (
+    select 1 from public.transport_routes tr
+    join public.transport_providers tp on tp.id = tr.transport_provider_id
+    where tr.id = transport_route_id and (public.can_manage_event(tr.event_id) or tp.profile_id = (select auth.uid()))
+  )
+);
+
+create policy "event_maps_read" on public.event_maps
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "event_maps_manager_write" on public.event_maps
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "event_schedules_read" on public.event_schedules
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "event_schedules_manager_write" on public.event_schedules
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "wallet_items_own" on public.attendee_wallet_items
+for select to authenticated
+using (profile_id = (select auth.uid()));
+
+create policy "rewards_own" on public.rewards
+for select to authenticated
+using (profile_id = (select auth.uid()));
+
+create policy "referrals_own" on public.referrals
+for all to authenticated
+using (referrer_id = (select auth.uid()) or referred_profile_id = (select auth.uid()))
+with check (referrer_id = (select auth.uid()));
+
+create policy "merchandise_read" on public.merchandise
+for select to authenticated
+using (exists (select 1 from public.events e where e.id = event_id));
+
+create policy "merchandise_manager_write" on public.merchandise
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "merchandise_orders_buyer_or_manager" on public.merchandise_orders
+for all to authenticated
+using (
+  buyer_id = (select auth.uid())
+  or exists (
+    select 1 from public.merchandise m
+    where m.id = merchandise_id and public.can_manage_event(m.event_id)
+  )
+)
+with check (buyer_id = (select auth.uid()));
+
+create policy "vendor_finances_manager_or_vendor" on public.vendor_finances
+for select to authenticated
+using (
+  public.can_manage_event(event_id)
+  or exists (select 1 from public.vendors v where v.id = vendor_id and v.profile_id = (select auth.uid()))
+  or exists (select 1 from public.food_vendors fv where fv.id = food_vendor_id and fv.profile_id = (select auth.uid()))
+  or exists (select 1 from public.transport_providers tp where tp.id = transport_provider_id and tp.profile_id = (select auth.uid()))
+);
+
+create policy "vendor_finances_manager_write" on public.vendor_finances
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "logistics_operations_manager_all" on public.logistics_operations
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
+create policy "health_safety_manager_all" on public.health_safety_records
+for all to authenticated
+using (public.can_manage_event(event_id))
+with check (public.can_manage_event(event_id));
+
 create policy "comments_read_visible_events" on public.event_comments
 for select to authenticated
 using (exists (select 1 from public.events e where e.id = event_id));
@@ -2635,6 +3258,17 @@ using (
 )
 with check (
   bucket_id in ('workspace-files', 'workforce-documents', 'incident-media', 'certificates')
+  and owner = (select auth.uid())
+);
+
+create policy "experience_public_assets_read" on storage.objects
+for select to authenticated
+using (bucket_id in ('food-vendor-assets', 'transport-assets', 'event-map-assets', 'merchandise-assets'));
+
+create policy "experience_assets_upload_own" on storage.objects
+for insert to authenticated
+with check (
+  bucket_id in ('food-vendor-assets', 'transport-assets', 'event-map-assets', 'merchandise-assets', 'compliance-documents')
   and owner = (select auth.uid())
 );
 
@@ -3036,6 +3670,89 @@ create trigger notify_emergency_alert_after_insert
 after insert on public.emergency_alerts
 for each row execute function private.notify_emergency_alert();
 
+create or replace function private.issue_food_wallet_item()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+begin
+  insert into public.attendee_wallet_items (profile_id, event_id, item_type, source_table, source_id, title, status, qr_hash)
+  values (new.buyer_id, new.event_id, 'food_pass', 'food_orders', new.id, 'Food Order ' || new.order_number, new.status::text, new.qr_nonce_hash);
+
+  insert into public.rewards (profile_id, event_id, source, points, description)
+  values (new.buyer_id, new.event_id, 'food_purchase', greatest(new.total_cents / 1000, 1), 'Food purchase reward');
+
+  return new;
+end;
+$$;
+
+revoke all on function private.issue_food_wallet_item() from public;
+
+create trigger issue_food_wallet_item_after_insert
+after insert on public.food_orders
+for each row execute function private.issue_food_wallet_item();
+
+create or replace function private.issue_transport_pass_and_wallet()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare
+  pass_id uuid;
+  pass_hash text;
+begin
+  insert into public.transport_passes (transport_booking_id)
+  values (new.id)
+  returning id, boarding_qr_hash into pass_id, pass_hash;
+
+  insert into public.transport_manifests (transport_route_id, transport_booking_id, passenger_name, passenger_phone, pickup_point, status)
+  values (new.transport_route_id, new.id, new.passenger_name, new.passenger_phone, new.pickup_point, new.status);
+
+  insert into public.attendee_wallet_items (profile_id, event_id, item_type, source_table, source_id, title, status, qr_hash)
+  values (new.buyer_id, new.event_id, 'transport_pass', 'transport_passes', pass_id, 'Transport Pass', new.status::text, pass_hash);
+
+  insert into public.rewards (profile_id, event_id, source, points, description)
+  values (new.buyer_id, new.event_id, 'transport_purchase', greatest(new.amount_cents / 1000, 1), 'Transport booking reward');
+
+  return new;
+end;
+$$;
+
+revoke all on function private.issue_transport_pass_and_wallet() from public;
+
+create trigger issue_transport_pass_and_wallet_after_insert
+after insert on public.transport_bookings
+for each row execute function private.issue_transport_pass_and_wallet();
+
+create or replace function private.issue_merch_wallet_item()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+declare
+  event_ref uuid;
+begin
+  select event_id into event_ref from public.merchandise where id = new.merchandise_id;
+
+  insert into public.attendee_wallet_items (profile_id, event_id, item_type, source_table, source_id, title, status, qr_hash)
+  values (new.buyer_id, event_ref, 'merchandise_pass', 'merchandise_orders', new.id, 'Merchandise Collection', new.status, new.collection_qr_hash);
+
+  insert into public.rewards (profile_id, event_id, source, points, description)
+  values (new.buyer_id, event_ref, 'merchandise_purchase', new.quantity, 'Merchandise purchase reward');
+
+  return new;
+end;
+$$;
+
+revoke all on function private.issue_merch_wallet_item() from public;
+
+create trigger issue_merch_wallet_item_after_insert
+after insert on public.merchandise_orders
+for each row execute function private.issue_merch_wallet_item();
+
 create or replace view public.recommended_events
 with (security_invoker = true)
 as
@@ -3219,3 +3936,25 @@ alter publication supabase_realtime add table public.event_certificates;
 alter publication supabase_realtime add table public.event_announcements;
 alter publication supabase_realtime add table public.organization_hierarchy;
 alter publication supabase_realtime add table public.approval_workflows;
+alter publication supabase_realtime add table public.food_vendors;
+alter publication supabase_realtime add table public.food_vendor_applications;
+alter publication supabase_realtime add table public.food_stalls;
+alter publication supabase_realtime add table public.food_menus;
+alter publication supabase_realtime add table public.food_orders;
+alter publication supabase_realtime add table public.food_redemptions;
+alter publication supabase_realtime add table public.transport_providers;
+alter publication supabase_realtime add table public.transport_routes;
+alter publication supabase_realtime add table public.transport_bookings;
+alter publication supabase_realtime add table public.transport_passes;
+alter publication supabase_realtime add table public.transport_manifests;
+alter publication supabase_realtime add table public.vehicle_tracking;
+alter publication supabase_realtime add table public.event_maps;
+alter publication supabase_realtime add table public.event_schedules;
+alter publication supabase_realtime add table public.attendee_wallet_items;
+alter publication supabase_realtime add table public.rewards;
+alter publication supabase_realtime add table public.referrals;
+alter publication supabase_realtime add table public.merchandise;
+alter publication supabase_realtime add table public.merchandise_orders;
+alter publication supabase_realtime add table public.vendor_finances;
+alter publication supabase_realtime add table public.logistics_operations;
+alter publication supabase_realtime add table public.health_safety_records;

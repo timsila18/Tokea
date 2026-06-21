@@ -59,10 +59,21 @@ Tagline: **Don't Hear About It. Tokea.**
 - Incident management and emergency response foundations with realtime alert distribution.
 - Secure storage buckets and RLS policies for workspace files, workforce documents, incident media, and certificates.
 
+## Bit 6 Included
+
+- Foodo event services module with food vendor profiles, applications, stall management, menus, pre-orders, QR redemption, order status, and food analytics foundation.
+- Triplink transport module with provider profiles, event routes, pickup/drop-off schedules, transport booking, boarding QR passes, passenger manifests, and vehicle tracking foundation.
+- Attendee Experience Hub for ticket, food, transport, updates, maps, emergency contacts, event schedule, coupons, rewards, and wallet passes.
+- Event maps and timeline foundations for entrances, exits, VIP areas, vendors, transport zones, medical areas, stages, parking, and departure times.
+- Rewards, referrals, merchandise sales, merchandise QR collection, vendor finance, logistics operations, and health/safety modules.
+- RLS, storage buckets, wallet/reward triggers, and realtime publication coverage for food, transport, maps, schedules, wallet items, rewards, referrals, merch, logistics, and compliance.
+
 ## Not Included Yet
 
 - Live ticket checkout charging.
 - Live M-Pesa Daraja API processing.
+- Final Next.js web platform.
+- Production hardening and launch infrastructure.
 - Solco, Foodo, Triplink.
 
 ## Setup
