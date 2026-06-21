@@ -333,6 +333,146 @@ button {
   width: 20px;
 }
 
+.action-popover-wrap {
+  position: relative;
+}
+
+.action-popover {
+  background: rgba(12, 12, 13, 0.96);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: 48px;
+  width: min(360px, calc(100vw - 32px));
+  z-index: 40;
+}
+
+.popover-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.popover-head strong,
+.popover-head span {
+  display: block;
+}
+
+.popover-head strong {
+  font-size: 14px;
+}
+
+.popover-head span {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.popover-head button,
+.message-compose button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.popover-list {
+  display: grid;
+  gap: 7px;
+}
+
+.popover-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  min-height: 66px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.popover-row.unread {
+  border-color: rgba(255, 45, 122, 0.28);
+}
+
+.popover-row > span {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  height: 8px;
+  width: 8px;
+}
+
+.popover-row.unread > span {
+  background: var(--pink);
+}
+
+.popover-row strong,
+.popover-row p {
+  margin: 0;
+}
+
+.popover-row strong {
+  display: block;
+  font-size: 12px;
+}
+
+.popover-row p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.popover-row time {
+  color: var(--pink);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.popover-action {
+  align-items: center;
+  background: rgba(212, 175, 55, 0.11);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 10px;
+  color: var(--gold);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+}
+
+.message-compose {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 38px;
+}
+
+.message-compose input {
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text);
+  min-width: 0;
+  outline: 0;
+  padding: 0 12px;
+}
+
 .wallet-chip {
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--line-strong);

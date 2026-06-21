@@ -2,7 +2,6 @@ import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
-  Bell,
   BriefcaseBusiness,
   CalendarDays,
   ChevronLeft,
@@ -10,7 +9,6 @@ import {
   Command,
   CreditCard,
   Eye,
-  Mail,
   MapPin,
   Plus,
   Search,
@@ -18,8 +16,8 @@ import {
   Ticket,
   Users,
   Utensils,
-  Wallet,
 } from 'lucide-react';
+import { TopbarActions } from '@/components/TopbarActions';
 
 const events = [
   {
@@ -67,7 +65,7 @@ type TransactionItem = [string, string, string, 'positive' | 'negative'];
 
 const activity: ActivityItem[] = [
   ['New ticket sale', 'Early Bird - Blankets & Wine Nairobi', '12s ago', Ticket, 'pink'],
-  ['Order completed', 'James Mwangi - 2x VIP', '34s ago', Wallet, 'green'],
+  ['Order completed', 'James Mwangi - 2x VIP', '34s ago', CreditCard, 'green'],
   ['New organizer registered', 'Nairobi Comedy Club', '1m ago', Users, 'purple'],
   ['Event updated', 'Koroga Festival 2025', '2m ago', CalendarDays, 'gold'],
   ['Payout processed', 'KES 48,750 to Melanin Events', '3m ago', BriefcaseBusiness, 'green'],
@@ -98,27 +96,7 @@ export default function HomePage() {
           <span><Command size={13} /> K</span>
         </label>
 
-        <div className="top-actions">
-          <Link href="/dashboard/organizer" className="create-button">
-            <CalendarDays size={17} />
-            Create Event
-          </Link>
-          <span className="top-divider" />
-          <button className="icon-button alert-dot" aria-label="Notifications">
-            <Bell size={20} />
-            <b>12</b>
-          </button>
-          <button className="icon-button" aria-label="Messages">
-            <Mail size={20} />
-          </button>
-          <div className="wallet-chip">
-            <div>
-              <strong>KES 24,450.00</strong>
-              <span>Event-Day Wallet</span>
-            </div>
-            <Wallet size={20} />
-          </div>
-        </div>
+        <TopbarActions />
       </header>
 
       <div className="dashboard-grid">
