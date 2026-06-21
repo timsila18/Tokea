@@ -9,6 +9,7 @@ import {
   Command,
   CreditCard,
   Eye,
+  MessageCircle,
   MapPin,
   Plus,
   Search,
@@ -76,11 +77,11 @@ const activity: ActivityItem[] = [
 ];
 
 const metrics: MetricItem[] = [
-  ['Total Events', '1,248', '12.5% vs last month', CalendarDays, 'pink'],
-  ['Total Tickets Sold', '35,682', '18.7% vs last month', Ticket, 'gold'],
-  ['Total Revenue (KES)', '12.4M', '23.4% vs last month', BriefcaseBusiness, 'pink'],
-  ['Active Organizers', '532', '8.3% vs last month', Users, 'gold'],
-  ['Foodo Orders', '3,248', '15.6% vs last month', Utensils, 'pink'],
+  ['Saved Events', '14', '3 happening this week', CalendarDays, 'pink'],
+  ['Tickets Owned', '2', '1 VIP, 1 regular', Ticket, 'gold'],
+  ['Community Posts', '38', '12 new today', MessageCircle, 'pink'],
+  ['Friends Going', '9', 'Across 4 events', Users, 'gold'],
+  ['Foodo Picks', '6', 'Ready to pre-order', Utensils, 'pink'],
 ];
 
 const transactions: TransactionItem[] = [
@@ -163,7 +164,7 @@ export default function HomePage() {
           </section>
 
           <section className="command-panel">
-            <h2>Admin Command Center</h2>
+            <h2>My Event Pulse</h2>
             <div className="metric-strip">
               {metrics.map(([label, value, trend, Icon, tone]) => (
                 <article className="metric-card" key={label as string}>
@@ -178,16 +179,16 @@ export default function HomePage() {
 
           <section className="system-panel">
             <div>
-              <h2>System Overview</h2>
-              <span className="system-status"><ShieldCheck size={20} /> Platform Status <b>All Systems Operational</b></span>
+              <h2>Attendee Hub</h2>
+              <span className="system-status"><ShieldCheck size={20} /> Account Status <b>Ready for event day</b></span>
             </div>
             <dl>
-              <div><dt>Server Uptime</dt><dd>99.98%</dd></div>
-              <div><dt>Avg. Response Time</dt><dd>320ms</dd></div>
-              <div><dt>Active Users</dt><dd>2,847</dd></div>
-              <div><dt>Live Events</dt><dd>23</dd></div>
+              <div><dt>Upcoming Tickets</dt><dd>2</dd></div>
+              <div><dt>Saved Events</dt><dd>14</dd></div>
+              <div><dt>Active Chats</dt><dd>5</dd></div>
+              <div><dt>Wallet Balance</dt><dd>KES 24,450</dd></div>
             </dl>
-            <Link href="/admin">View system health <ArrowRight size={16} /></Link>
+            <Link href="/dashboard/attendee">Open attendee dashboard <ArrowRight size={16} /></Link>
           </section>
         </main>
 
@@ -199,7 +200,7 @@ export default function HomePage() {
             </div>
             <div className="activity-list">
               {activity.map(([title, body, time, Icon, tone]) => (
-                <Link className="activity-row" href={title === 'Event updated' ? '/events/koroga-festival-2025' : '/admin'} key={title as string}>
+                <Link className="activity-row" href={title === 'Event updated' ? '/events/koroga-festival-2025' : '/events/blankets-and-wine-nairobi#community'} key={title as string}>
                   <span className={`activity-icon ${tone}`}><Icon size={20} /></span>
                   <div>
                     <strong>{title}</strong>
@@ -209,7 +210,7 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-            <Link className="rail-link" href="/admin">View all activity <ArrowRight size={16} /></Link>
+            <Link className="rail-link" href="/events/blankets-and-wine-nairobi#community">View event chats <ArrowRight size={16} /></Link>
           </section>
 
           <section className="rail-panel wallet-panel">
@@ -222,7 +223,7 @@ export default function HomePage() {
             <span>Tokea Wallet</span>
             <div className="wallet-actions">
               <Link href="/dashboard/attendee/top-up">Top Up <Plus size={20} /></Link>
-              <Link href="/dashboard/organizer/withdrawals">Withdraw <ArrowRight size={16} /></Link>
+              <Link href="/dashboard/attendee">Wallet <ArrowRight size={16} /></Link>
             </div>
             <div className="transactions-head">
               <h3>Recent Transactions</h3>

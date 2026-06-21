@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { eventJsonLd, eventMetadata } from '@/lib/seo';
 import { demoEvents } from '@/lib/data';
+import { EventCommunityChat } from '@/components/EventCommunityChat';
 import { ModuleTable } from '@/components/ModuleTable';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -56,6 +57,7 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
       </section>
+      <EventCommunityChat eventTitle={event.title} />
       <ModuleTable
         title="Event-Day Add Ons"
         columns={['Service', 'Status', 'Realtime Table']}
