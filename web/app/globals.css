@@ -279,7 +279,8 @@ button {
 .icon-button,
 .rail-link,
 .hero-search button,
-.wallet-actions button {
+.wallet-actions button,
+.wallet-actions a {
   align-items: center;
   border-radius: 8px;
   display: inline-flex;
@@ -1106,22 +1107,26 @@ button {
   margin-top: 15px;
 }
 
-.wallet-actions button {
+.wallet-actions button,
+.wallet-actions a {
   border: 1px solid var(--line-strong);
   color: #fff;
   font-size: 13px;
   font-weight: 850;
   gap: 12px;
   height: 39px;
+  text-decoration: none;
 }
 
-.wallet-actions button:first-child {
+.wallet-actions button:first-child,
+.wallet-actions a:first-child {
   background: linear-gradient(135deg, #f0c142, #d99f20);
   border: 0;
   color: #090909;
 }
 
-.wallet-actions button:last-child {
+.wallet-actions button:last-child,
+.wallet-actions a:last-child {
   background: transparent;
 }
 
@@ -1273,6 +1278,44 @@ button {
   font-size: 13px;
   font-weight: 800;
   justify-self: center;
+}
+
+.search-form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.search-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.search-result {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: inherit;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.search-result:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.search-result strong {
+  color: var(--gold);
+}
+
+.search-result span,
+.search-result p {
+  color: var(--muted);
+  margin: 0;
 }
 
 .withdrawals-page {

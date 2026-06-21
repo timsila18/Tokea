@@ -94,11 +94,11 @@ export default function HomePage() {
   return (
     <div className="dashboard-screen">
       <header className="dashboard-topbar">
-        <label className="top-search">
+        <form className="top-search" action="/search">
           <Search size={18} />
-          <input placeholder="Search events, artists, venues, hashtags..." />
+          <input name="q" placeholder="Search events, artists, venues, hashtags..." />
           <span><Command size={13} /> K</span>
-        </label>
+        </form>
 
         <TopbarActions />
       </header>
@@ -110,11 +110,11 @@ export default function HomePage() {
               <p className="section-kicker">Discover Public Events</p>
               <h1>Your Gateway to Kenya&apos;s Best Experiences</h1>
               <p>From electrifying concerts to cultural festivals, find events that create memories.</p>
-              <div className="hero-search">
+              <form className="hero-search" action="/search">
                 <Search size={18} />
-                <input placeholder="Search events, artists, venues..." />
-                <button>Search</button>
-              </div>
+                <input name="q" placeholder="Search events, artists, venues..." />
+                <button type="submit">Search</button>
+              </form>
               <div className="trending">
                 <span>Trending Searches:</span>
                 {['#BlanketsAndWine', '#Nairobi', '#Gospel', '#Comedy'].map((tag) => (
@@ -221,8 +221,8 @@ export default function HomePage() {
             <strong className="wallet-balance">KES 24,450.00</strong>
             <span>Tokea Wallet</span>
             <div className="wallet-actions">
-              <button>Top Up <Plus size={20} /></button>
-              <button>Withdraw <ArrowRight size={16} /></button>
+              <Link href="/dashboard/attendee/top-up">Top Up <Plus size={20} /></Link>
+              <Link href="/dashboard/organizer/withdrawals">Withdraw <ArrowRight size={16} /></Link>
             </div>
             <div className="transactions-head">
               <h3>Recent Transactions</h3>

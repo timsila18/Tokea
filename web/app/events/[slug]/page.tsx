@@ -45,8 +45,8 @@ export default async function EventDetailPage({ params }: Props) {
           <h1>{event.title}</h1>
           <p>{event.description}</p>
           <div className="hero-actions">
-            <Link href="/dashboard/attendee" className="button">Buy Ticket</Link>
-            <Link href="/dashboard/attendee" className="button secondary">Add Food + Transport</Link>
+            <Link href="/dashboard/attendee/top-up" className="button">Buy Ticket</Link>
+            <Link href="/search?q=Foodo%20Triplink" className="button secondary">Add Food + Transport</Link>
           </div>
           <div className="metrics">
             <div className="metric"><strong>{event.price}</strong><span>Ticket Starting Price</span></div>

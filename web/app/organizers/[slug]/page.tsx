@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { OrganizerProfileActions } from '@/components/OrganizerProfileActions';
 import { ModuleTable } from '@/components/ModuleTable';
 
 export const metadata: Metadata = {
@@ -8,17 +9,15 @@ export const metadata: Metadata = {
 
 export default async function OrganizerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const organizerName = slug.replaceAll('-', ' ');
 
   return (
     <>
       <section className="panel hero-panel">
         <div className="hero-content">
-          <h1>{slug.replaceAll('-', ' ')}</h1>
+          <h1>{organizerName}</h1>
           <p>Verified organizer profile with upcoming events, past events, videos, photos, reviews, and sponsor-ready proof.</p>
-          <div className="hero-actions">
-            <button className="button">Follow Organizer</button>
-            <button className="button secondary">View Events</button>
-          </div>
+          <OrganizerProfileActions organizerName={organizerName} />
         </div>
       </section>
       <ModuleTable
