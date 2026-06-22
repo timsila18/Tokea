@@ -1469,6 +1469,55 @@ button {
   justify-content: center;
 }
 
+.community-workspace { display: grid; gap: 18px; }
+.community-hero { align-items: end; background: linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(255, 45, 122, 0.06)); border: 1px solid var(--line-strong); border-radius: 12px; display: flex; justify-content: space-between; padding: 28px; }
+.community-title-row, .community-feed-head, .post-author, .post-actions, .community-channel-heading, .community-composer, .community-post { align-items: center; display: flex; }
+.community-title-row { gap: 9px; }
+.community-title-row p { color: var(--gold); font-size: 13px; font-weight: 800; margin: 0; text-transform: uppercase; }
+.community-mark { align-items: center; background: rgba(212, 175, 55, 0.15); border-radius: 8px; color: var(--gold); display: inline-flex; height: 36px; justify-content: center; width: 36px; }
+.community-hero h1 { font-size: clamp(28px, 4vw, 44px); margin: 12px 0 8px; }
+.community-hero > div > p:last-child { color: var(--muted); margin: 0; max-width: 660px; }
+.community-workspace-layout { align-items: start; grid-template-columns: 240px minmax(0, 1fr); }
+.community-channel-heading { color: var(--muted); font-size: 13px; justify-content: space-between; padding: 5px 8px 9px; }
+.community-channel-heading strong { color: var(--text); }
+.community-channels button span { flex: 1; }
+.community-channels button small { color: inherit; font-size: 11px; opacity: 0.7; }
+.community-feed { background: rgba(255, 255, 255, 0.025); border: 1px solid var(--line); border-radius: 12px; min-height: 560px; }
+.community-feed-head { border-bottom: 1px solid var(--line); justify-content: space-between; padding: 18px 20px; }
+.community-feed-head h2 { font-size: 20px; margin: 0; }
+.community-feed-head p { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.community-composer { border-bottom: 1px solid var(--line); gap: 10px; padding: 14px 20px; }
+.post-avatar { align-items: center; background: rgba(212, 175, 55, 0.18); border: 1px solid rgba(212, 175, 55, 0.28); border-radius: 50%; color: var(--gold); display: inline-flex; flex: 0 0 auto; font-size: 11px; font-weight: 900; height: 34px; justify-content: center; width: 34px; }
+.post-avatar.mine { background: rgba(255, 45, 122, 0.14); border-color: rgba(255, 45, 122, 0.32); color: var(--pink); }
+.community-composer input, .reply-compose input { background: rgba(0, 0, 0, 0.28); border: 1px solid var(--line-strong); border-radius: 8px; color: var(--text); flex: 1; min-width: 0; outline: 0; padding: 11px 13px; }
+.community-composer button { align-items: center; background: var(--gold); border: 0; border-radius: 8px; color: var(--black); display: inline-flex; height: 40px; justify-content: center; width: 42px; }
+.community-posts { display: grid; gap: 0; }
+.community-post { align-items: flex-start; border-bottom: 1px solid var(--line); gap: 12px; padding: 18px 20px; }
+.community-post-content { flex: 1; min-width: 0; }
+.post-author { flex-wrap: wrap; gap: 8px; }
+.post-author span { color: var(--muted); font-size: 12px; }
+.post-author em { align-items: center; color: var(--gold); display: inline-flex; font-size: 11px; font-style: normal; gap: 4px; }
+.community-post-content > p { line-height: 1.55; margin: 9px 0 12px; }
+.post-actions { gap: 15px; }
+.post-actions button { align-items: center; background: transparent; border: 0; color: var(--muted); display: inline-flex; font-size: 12px; font-weight: 700; gap: 5px; padding: 0; }
+.post-actions button:hover, .post-actions button.active { color: var(--pink); }
+.post-comments { border-left: 2px solid rgba(212, 175, 55, 0.35); display: grid; gap: 7px; margin-top: 13px; padding-left: 12px; }
+.post-comments p { color: var(--muted); font-size: 13px; margin: 0; }
+.post-comments strong { color: var(--text); margin-right: 7px; }
+.reply-compose { display: flex; gap: 8px; margin-top: 13px; }
+.reply-compose button { background: transparent; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--gold); font-weight: 800; padding: 0 13px; }
+.community-notice { background: rgba(255, 45, 122, 0.1); border-top: 1px solid rgba(255, 45, 122, 0.25); color: #ffd0e2; margin: 0; padding: 11px 20px; }
+
+@media (max-width: 820px) {
+  .community-hero { align-items: flex-start; flex-direction: column; padding: 20px; }
+  .community-workspace-layout { grid-template-columns: 1fr; }
+  .community-channels { display: flex; overflow-x: auto; padding: 8px; }
+  .community-channel-heading { display: none; }
+  .community-channels button { flex: 0 0 auto; }
+  .community-channels button small { display: none; }
+  .community-feed-head, .community-composer, .community-post { padding-left: 14px; padding-right: 14px; }
+}
+
 .withdrawals-page {
   display: grid;
   gap: 22px;
