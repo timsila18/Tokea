@@ -16,32 +16,40 @@ export default function LoginPage() {
     setLoading(true);
     setMessage('');
 
-    let timeoutId: number | undefined;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15_000);
 
     try {
-      const timeout = new Promise<never>((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error('Login is taking too long. Please check your connection and try again.')), 15_000);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+        cache: 'no-store',
+        credentials: 'same-origin',
+        signal: controller.signal,
       });
-      const response = await Promise.race([
-        fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password }),
-        }),
-        timeout,
-      ]);
       const body = await response.json();
       if (!response.ok) {
         setMessage(body.error ?? 'Unable to login. Please try again.');
         return;
       }
+
+      const sessionResponse = await fetch('/api/auth/session', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      if (!sessionResponse.ok) {
+        setMessage('Login succeeded, but the session was not ready. Please tap Login again.');
+        return;
+      }
+
       window.dispatchEvent(new Event('tokea-auth-changed'));
       router.replace(body.dashboard ?? '/dashboard/attendee');
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to login. Please try again.');
+      setMessage(error instanceof DOMException && error.name === 'AbortError' ? 'Login is taking too long. Please check your connection and try again.' : 'Unable to login. Please try again.');
     } finally {
-      if (timeoutId) window.clearTimeout(timeoutId);
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   }

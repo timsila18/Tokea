@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
@@ -13,29 +13,55 @@ type RoleGateProps = {
 
 export function RoleGate({ allowedRoles, children }: RoleGateProps) {
   const router = useRouter();
+  const allowedKey = useMemo(() => allowedRoles.join('|'), [allowedRoles]);
   const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
   const [dashboardHref, setDashboardHref] = useState('/dashboard/attendee');
 
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12_000);
+
     async function checkRole() {
-      const response = await fetch('/api/auth/session');
-      if (response.status === 401) {
-        router.replace('/login');
-        return;
-      }
-      if (!response.ok) {
+      try {
+        setStatus('checking');
+        const allowedRoleList = allowedKey.split('|') as AppRole[];
+        const response = await fetch('/api/auth/session', {
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal: controller.signal,
+        });
+        if (!mounted) return;
+        if (response.status === 401) {
+          setStatus('denied');
+          window.dispatchEvent(new Event('tokea-auth-changed'));
+          router.replace('/login');
+          return;
+        }
+        if (!response.ok) {
+          setStatus('denied');
+          return;
+        }
+        const { user } = await response.json();
+        if (!mounted) return;
+        const role = user.role as AppRole;
+        const dashboard = dashboardForRole(role);
+        setDashboardHref(dashboard);
+        setStatus(allowedRoleList.includes(role) ? 'allowed' : 'denied');
+      } catch {
+        if (!mounted) return;
         setStatus('denied');
-        return;
       }
-      const { user } = await response.json();
-      const role = user.role as AppRole;
-      const dashboard = dashboardForRole(role);
-      setDashboardHref(dashboard);
-      setStatus(allowedRoles.includes(role) ? 'allowed' : 'denied');
     }
 
     checkRole();
-  }, [allowedRoles, router]);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [allowedKey, router]);
 
   if (status === 'checking') {
     return (
