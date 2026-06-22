@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { demoEvents } from '@/lib/data';
 import { ModuleTable } from '@/components/ModuleTable';
+import { DiscoverExperience } from '@/components/DiscoverExperience';
 
 export const metadata: Metadata = {
   title: 'Global Search',
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = '' } = await searchParams;
+  return <DiscoverExperience initialQuery={q} />;
+
   const query = q.trim().toLowerCase();
   const results = query
     ? demoEvents.filter((event) =>
