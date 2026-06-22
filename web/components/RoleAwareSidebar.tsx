@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -10,9 +10,11 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { dashboardForRole, navigationForRole, roleLabels, type AppRole } from '@/lib/roles';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export function RoleAwareSidebar() {
   const pathname = usePathname();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState<string | null>(null);
   const [fullName, setFullName] = useState('Guest');
   const [role, setRole] = useState<AppRole>('attendee');
@@ -46,6 +48,7 @@ export function RoleAwareSidebar() {
   }, []);
 
   async function logout() {
+    await supabase.auth.signOut();
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   }

@@ -20,6 +20,7 @@ export function AuthControls() {
 
   async function logout() {
     await supabase.auth.signOut();
+    await fetch('/api/auth/logout', { method: 'POST' });
     setEmail(null);
     window.location.href = '/login';
   }
