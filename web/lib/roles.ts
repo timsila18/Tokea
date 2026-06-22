@@ -130,8 +130,26 @@ export const attendeeNavItems: NavItem[] = [
   { label: 'Profile', href: '/dashboard/attendee/profile', icon: UserRound },
 ];
 
+export const staffNavItems: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard/staff', icon: House },
+  { label: 'Tasks', href: '/dashboard/staff/tasks', icon: UserCheck },
+  { label: 'Attendance', href: '/dashboard/staff/attendance', icon: BadgeCheck },
+  { label: 'Solco', href: '/dashboard/staff/solco', icon: MessageCircle },
+  { label: 'Profile', href: '/dashboard/staff/profile', icon: UserRound },
+];
+
+export const volunteerNavItems: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard/volunteer', icon: House },
+  { label: 'Tasks', href: '/dashboard/volunteer/tasks', icon: UserCheck },
+  { label: 'Hours', href: '/dashboard/volunteer/hours', icon: BadgeCheck },
+  { label: 'Solco', href: '/dashboard/volunteer/solco', icon: MessageCircle },
+  { label: 'Profile', href: '/dashboard/volunteer/profile', icon: UserRound },
+];
+
 export function navigationForRole(role: AppRole) {
   if (role === 'organizer') return organizerNavItems;
   if (role === 'attendee') return attendeeNavItems;
+  if (role === 'event_staff') return staffNavItems;
+  if (role === 'volunteer') return volunteerNavItems;
   return navItems.filter((item) => !item.roles || item.roles.includes(role));
 }
