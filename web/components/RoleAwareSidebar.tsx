@@ -21,11 +21,19 @@ export function RoleAwareSidebar() {
 
   useEffect(() => {
     let mounted = true;
+    let retryId: number | undefined;
 
-    async function loadIdentity() {
-      const response = await fetch('/api/auth/session');
+    async function loadIdentity(retry = true) {
+      const response = await fetch('/api/auth/session', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
       if (!mounted) return;
       if (!response.ok) {
+        if (retry) {
+          retryId = window.setTimeout(() => loadIdentity(false), 800);
+          return;
+        }
         setEmail(null);
         setFullName('Guest');
         setRole('attendee');
@@ -39,13 +47,17 @@ export function RoleAwareSidebar() {
     }
 
     loadIdentity();
-    window.addEventListener('tokea-auth-changed', loadIdentity);
+    const handleAuthChanged = () => {
+      void loadIdentity();
+    };
+    window.addEventListener('tokea-auth-changed', handleAuthChanged);
 
     return () => {
       mounted = false;
-      window.removeEventListener('tokea-auth-changed', loadIdentity);
+      if (retryId) window.clearTimeout(retryId);
+      window.removeEventListener('tokea-auth-changed', handleAuthChanged);
     };
-  }, []);
+  }, [pathname]);
 
   async function logout() {
     await supabase.auth.signOut();
