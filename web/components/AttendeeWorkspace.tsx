@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Bus, CalendarDays, ChevronRight, Download, Gift, MapPin, QrCode, RefreshCcw, Send, Share2, ShieldCheck, Ticket, Utensils, UserRound } from 'lucide-react';
+import { AttendeeProfileExperience } from './AttendeeProfileExperience';
 
 const tickets = [
   { event: 'Blankets & Wine Nairobi', date: '4 Jul 2026', venue: 'Uhuru Gardens', type: 'Early Bird', code: 'TK-BW-8F42', status: 'Upcoming', gate: 'Gate B', food: 'Foodo ready to add', transport: 'Triplink Westlands route' },
@@ -11,7 +12,7 @@ const tickets = [
 
 export function AttendeeWorkspace({ module }: { module: string }) {
   if (module === 'tickets') return <TicketWallet />;
-  return <AttendeeProfile />;
+  return <AttendeeProfileExperience />;
 }
 
 function TicketWallet() {
