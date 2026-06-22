@@ -6,6 +6,8 @@ import {
   MapPinned,
   Megaphone,
   Mic2,
+  House,
+  MessageCircle,
   Plane,
   Shield,
   Store,
@@ -14,6 +16,7 @@ import {
   Users,
   Utensils,
   WalletCards,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -119,7 +122,16 @@ export const organizerNavItems: NavItem[] = [
   { label: 'Settings', href: '/dashboard/organizer/settings', icon: Shield },
 ];
 
+export const attendeeNavItems: NavItem[] = [
+  { label: 'Home', href: '/dashboard/attendee', icon: House },
+  { label: 'Discover', href: '/search', icon: MapPinned },
+  { label: 'Tickets', href: '/dashboard/attendee/tickets', icon: Ticket },
+  { label: 'Communities', href: '/communities/blankets-and-wine-nairobi', icon: MessageCircle },
+  { label: 'Profile', href: '/dashboard/attendee/profile', icon: UserRound },
+];
+
 export function navigationForRole(role: AppRole) {
   if (role === 'organizer') return organizerNavItems;
+  if (role === 'attendee') return attendeeNavItems;
   return navItems.filter((item) => !item.roles || item.roles.includes(role));
 }
