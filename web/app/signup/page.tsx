@@ -99,7 +99,7 @@ export default function SignupPage() {
       }
     }
 
-    if (role === 'event_staff' || role === 'volunteer' || role === 'organizer_team_member') {
+    if (role === 'event_staff' || role === 'organizer_team_member') {
       const { error: staffError } = await supabase.from('staff_profiles').upsert(
         { profile_id: data.user.id },
         { onConflict: 'profile_id' },
@@ -107,6 +107,18 @@ export default function SignupPage() {
       if (staffError) {
         setLoading(false);
         setMessage(staffError.message);
+        return;
+      }
+    }
+
+    if (role === 'volunteer') {
+      const { error: volunteerError } = await supabase.from('volunteer_profiles').upsert(
+        { profile_id: data.user.id },
+        { onConflict: 'profile_id' },
+      );
+      if (volunteerError) {
+        setLoading(false);
+        setMessage(volunteerError.message);
         return;
       }
     }
