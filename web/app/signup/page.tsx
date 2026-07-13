@@ -3,20 +3,18 @@
 import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { appRoles, type AppRole } from '@/lib/roles';
+import type { AppRole } from '@/lib/roles';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+
+const publicSignupRole: AppRole = 'attendee';
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [role, setRole] = useState<AppRole>('attendee');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [organizationName, setOrganizationName] = useState('');
-  const [businessName, setBusinessName] = useState('');
-  const [profileName, setProfileName] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +32,7 @@ export default function SignupPage() {
         data: {
           full_name: fullName.trim(),
           phone_number: cleanPhone,
-          role,
+          role: publicSignupRole,
         },
       },
     });
@@ -49,14 +47,14 @@ export default function SignupPage() {
       supabase.from('users').upsert({
         id: data.user.id,
         phone_number: cleanPhone,
-        role,
+        role: publicSignupRole,
         disabled_at: null,
       }),
       supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName.trim(),
         phone_number: cleanPhone,
-        role,
+        role: publicSignupRole,
         bio: 'Tokea member',
       }),
     ];
@@ -67,60 +65,6 @@ export default function SignupPage() {
       setLoading(false);
       setMessage(userError?.message ?? profileError?.message ?? 'Unable to save profile.');
       return;
-    }
-
-    if (role === 'organizer') {
-      const { error: organizerError } = await supabase.from('organizer_profiles').upsert(
-        {
-          profile_id: data.user.id,
-          organization_name: organizationName.trim(),
-        },
-        { onConflict: 'profile_id' },
-      );
-      if (organizerError) {
-        setLoading(false);
-        setMessage(organizerError.message);
-        return;
-      }
-    }
-
-    if (role === 'service_vendor' || role === 'food_vendor' || role === 'transport_provider') {
-      const { error: vendorError } = await supabase.from('vendors').upsert(
-        {
-          profile_id: data.user.id,
-          business_name: businessName.trim() || profileName.trim(),
-        },
-        { onConflict: 'profile_id' },
-      );
-      if (vendorError) {
-        setLoading(false);
-        setMessage(vendorError.message);
-        return;
-      }
-    }
-
-    if (role === 'event_staff' || role === 'organizer_team_member') {
-      const { error: staffError } = await supabase.from('staff_profiles').upsert(
-        { profile_id: data.user.id },
-        { onConflict: 'profile_id' },
-      );
-      if (staffError) {
-        setLoading(false);
-        setMessage(staffError.message);
-        return;
-      }
-    }
-
-    if (role === 'volunteer') {
-      const { error: volunteerError } = await supabase.from('volunteer_profiles').upsert(
-        { profile_id: data.user.id },
-        { onConflict: 'profile_id' },
-      );
-      if (volunteerError) {
-        setLoading(false);
-        setMessage(volunteerError.message);
-        return;
-      }
     }
 
     await supabase.auth.signOut();
@@ -137,10 +81,11 @@ export default function SignupPage() {
         <h1>Create account</h1>
         <label>
           Account Type
-          <select value={role} onChange={(event) => setRole(event.target.value as AppRole)}>
-            {appRoles.filter((item) => item.value !== 'super_admin').map(({ value, label }) => <option value={value} key={value}>{label}</option>)}
-          </select>
+          <input value="Attendee" readOnly aria-readonly="true" />
         </label>
+        <p className="auth-helper">
+          Organizer, staff, volunteer, vendor, sponsor, artist, and venue accounts are created by Tokea Admin or approved organizer invitation.
+        </p>
         <label>
           Full Name
           <input value={fullName} onChange={(event) => setFullName(event.target.value)} required />
@@ -153,24 +98,6 @@ export default function SignupPage() {
           Kenyan Phone Number
           <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} inputMode="tel" placeholder="2547..." required />
         </label>
-        {role === 'organizer' ? (
-          <label>
-            Organization Name
-            <input value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} required />
-          </label>
-        ) : null}
-        {role === 'food_vendor' || role === 'transport_provider' || role === 'service_vendor' ? (
-          <label>
-            Business Name
-            <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} required />
-          </label>
-        ) : null}
-        {role === 'sponsor' || role === 'artist_speaker' || role === 'venue_owner' ? (
-          <label>
-            {role === 'sponsor' ? 'Company Name' : role === 'venue_owner' ? 'Venue Name' : 'Stage / Professional Name'}
-            <input value={profileName} onChange={(event) => setProfileName(event.target.value)} required />
-          </label>
-        ) : null}
         <label>
           Password
           <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={8} required />

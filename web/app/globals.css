@@ -1236,6 +1236,15 @@ button {
   font-size: 13px;
 }
 
+.auth-card .auth-helper {
+  background: rgba(212, 175, 55, 0.09);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.45;
+  padding: 11px 12px;
+}
+
 .auth-card label {
   color: rgba(255, 255, 255, 0.76);
   display: grid;
