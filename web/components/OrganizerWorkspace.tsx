@@ -37,6 +37,7 @@ const standardTicketTypes = ['Regular', 'VIP', 'VVIP', 'Regular Group of 5', 'Ga
 const eventCategories = ['Music', 'Gospel', 'Sports', 'Business', 'Technology', 'Fashion', 'Comedy', 'Festivals', 'Conferences', 'Nightlife'];
 const venueSuggestions = ['KICC', 'Uhuru Gardens', 'The Carnivore Grounds', 'Sarit Expo Centre', 'Two Rivers Mall', 'The Hub Karen', 'Kenyatta Stadium', 'Nairobi Street Kitchen', 'Bomas of Kenya', 'The Standup Lounge'];
 const cityOptions = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Naivasha', 'Thika', 'Machakos', 'Diani', 'Nanyuki'];
+const eventNameSuggestions = ['Blankets & Wine Nairobi', 'Nairobi Gospel Night', 'Koroga Festival 2026', 'Campus Amapiano Festival', 'Tech Founders Summit'];
 const wizardSuggestions: Record<number, [string, string, string, string[]?][]> = {
   3: [['Schedule title', 'text', 'Main programme', ['Gates open', 'Opening act', 'Headline performance', 'VIP check-in', 'After party']], ['Schedule date', 'date', ''], ['Start time', 'time', ''], ['End time', 'time', '']],
   5: [['Food vendor brief', 'text', 'Cuisine and stall requirements', ['Nyama choma village', 'Cocktail bars', 'Street food court', 'Coffee and dessert vendors']], ['Vendor fee (KES)', 'number', '']],
@@ -158,6 +159,27 @@ function CreateEventWizard() {
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function formatDate(date: Date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function nextSaturday() {
+    const date = new Date();
+    const daysUntilSaturday = (6 - date.getDay() + 7) % 7 || 7;
+    date.setDate(date.getDate() + daysUntilSaturday);
+    return formatDate(date);
+  }
+
+  function applyTemplate(kind: 'concert' | 'festival' | 'conference') {
+    const templates = {
+      concert: { title: 'Nairobi Live Concert', category: 'Music', venue: 'KICC', startTime: '18:00', endTime: '23:00' },
+      festival: { title: 'Koroga Festival 2026', category: 'Festivals', venue: 'The Carnivore Grounds', startTime: '12:00', endTime: '22:00' },
+      conference: { title: 'Tech Founders Summit', category: 'Technology', venue: 'Sarit Expo Centre', startTime: '09:00', endTime: '17:00' },
+    }[kind];
+    const date = nextSaturday();
+    setForm((current) => ({ ...current, ...templates, startDate: date, endDate: date }));
   }
 
   async function saveDraft() {
@@ -308,20 +330,25 @@ function CreateEventWizard() {
 
             {step === 0 && (
               <div className="wizard-form">
-                <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /></label>
+                <div className="wide quick-template-row">
+                  <button type="button" onClick={() => applyTemplate('concert')}>Concert</button>
+                  <button type="button" onClick={() => applyTemplate('festival')}>Festival</button>
+                  <button type="button" onClick={() => applyTemplate('conference')}>Conference</button>
+                </div>
+                <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /><SuggestionChips options={eventNameSuggestions} onPick={(value) => updateField('title', value)} /></label>
                 <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}>{eventCategories.map((category) => <option key={category}>{category}</option>)}</select></label>
-                <label>Start date<input value={form.startDate} onChange={(event) => updateField('startDate', event.target.value)} type="date" /></label>
-                <label>Start time<input value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} type="time" /></label>
-                <label>End date<input value={form.endDate} onChange={(event) => updateField('endDate', event.target.value)} type="date" /></label>
-                <label>End time<input value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} type="time" /></label>
-                <label>Venue<input list="event-venue-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /><datalist id="event-venue-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist></label>
+                <label>Start date<input className="picker-input" value={form.startDate} onChange={(event) => updateField('startDate', event.target.value)} type="date" /><PickerHelp kind="date" /></label>
+                <label>Start time<input className="picker-input" value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} type="time" /><PickerHelp kind="time" /></label>
+                <label>End date<input className="picker-input" value={form.endDate} onChange={(event) => updateField('endDate', event.target.value)} type="date" /><PickerHelp kind="date" /></label>
+                <label>End time<input className="picker-input" value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} type="time" /><PickerHelp kind="time" /></label>
+                <label>Venue<input list="event-venue-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /><datalist id="event-venue-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist><SuggestionChips options={venueSuggestions.slice(0, 5)} onPick={(value) => updateField('venue', value)} /></label>
                 <label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label>
               </div>
             )}
 
             {step === 1 && (
               <div className="wizard-form">
-                <label>Venue name<input list="venue-name-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /><datalist id="venue-name-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist></label>
+                <label>Venue name<input list="venue-name-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /><datalist id="venue-name-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist><SuggestionChips options={venueSuggestions.slice(0, 5)} onPick={(value) => updateField('venue', value)} /></label>
                 <label>City<select value={form.venueCity} onChange={(event) => updateField('venueCity', event.target.value)}>{cityOptions.map((city) => <option key={city}>{city}</option>)}</select></label>
                 <label>Capacity<input value={form.venueCapacity} onChange={(event) => updateField('venueCapacity', event.target.value)} type="number" placeholder="3000" /></label>
                 <label>Venue contact<input value={form.venueContact} onChange={(event) => updateField('venueContact', event.target.value)} type="tel" placeholder="2547..." /></label>
@@ -360,9 +387,12 @@ function CreateEventWizard() {
 
             <div className="wizard-actions">
               <button className="button secondary" type="button" disabled={step === 0} onClick={() => setStep((current) => current - 1)}>Back</button>
-              <button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>
-                {step === wizardSteps.length - 1 ? 'Publish when ready' : 'Continue'} <ArrowRight size={16} />
-              </button>
+              <div className="wizard-action-group">
+                {step >= 5 && step < wizardSteps.length - 1 && <button className="button secondary" type="button" onClick={() => setStep(wizardSteps.length - 1)}>Skip add-ons</button>}
+                <button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>
+                  {step === wizardSteps.length - 1 ? 'Publish when ready' : step >= 5 ? 'Save optional step' : 'Continue'} <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -375,19 +405,35 @@ function WizardStageFields({ step }: { step: number }) {
   return (
     <div className="wizard-form">
       {(wizardSuggestions[step] ?? []).map(([label, type, placeholder, options]) => (
-        <label key={label}>{label}<input list={options ? `${label}-suggestions` : undefined} type={type} placeholder={placeholder} />{options && <datalist id={`${label}-suggestions`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}</label>
+        <SuggestedField key={label} label={label} type={type} placeholder={placeholder} options={options} />
       ))}
     </div>
   );
 }
 
+function SuggestedField({ label, type, placeholder, options }: { label: string; type: string; placeholder: string; options?: string[] }) {
+  const [value, setValue] = useState('');
+  return <label>{label}<input className={type === 'date' || type === 'time' || type === 'datetime-local' ? 'picker-input' : undefined} list={options ? `${label}-suggestions` : undefined} type={type} value={value} onChange={(event) => setValue(event.target.value)} placeholder={placeholder} />{(type === 'date' || type === 'time' || type === 'datetime-local') && <PickerHelp kind={type === 'time' ? 'time' : 'date'} />}{options && <><datalist id={`${label}-suggestions`}>{options.map((option) => <option key={option} value={option} />)}</datalist><SuggestionChips options={options.slice(0, 4)} onPick={setValue} /></>}</label>;
+}
+
+function SuggestionChips({ options, onPick }: { options: string[]; onPick: (value: string) => void }) {
+  return <div className="suggestion-chips">{options.map((option) => <button type="button" key={option} onClick={() => onPick(option)}>{option}</button>)}</div>;
+}
+
+function PickerHelp({ kind }: { kind: 'date' | 'time' }) {
+  return <span className="picker-help">Click the {kind === 'date' ? 'calendar' : 'clock'} icon or the field to pick.</span>;
+}
+
 function TicketStageFields() {
+  const [salesStart, setSalesStart] = useState('');
+  const [salesEnd, setSalesEnd] = useState('');
+
   return (
     <div className="wizard-form ticket-bulk-grid">
       <div className="wide ticket-bulk-head"><strong>Standard ticket categories</strong><span>Configure several ticket types for this event instead of adding one at a time.</span></div>
       {standardTicketTypes.map((name, index) => <div className="ticket-bulk-card" key={name}><strong>{name}</strong><label>Price (KES)<input type="number" placeholder={String([2500, 6500, 12000, 11000, 3000][index])} /></label><label>Quantity<input type="number" placeholder={String([500, 150, 50, 80, 300][index])} /></label></div>)}
-      <label>Sales start<input type="datetime-local" /></label>
-      <label>Sales end<input type="datetime-local" /></label>
+      <label>Sales start<input className="picker-input" type="datetime-local" value={salesStart} onChange={(event) => setSalesStart(event.target.value)} /><PickerHelp kind="date" /></label>
+      <label>Sales end<input className="picker-input" type="datetime-local" value={salesEnd} onChange={(event) => setSalesEnd(event.target.value)} /><PickerHelp kind="date" /></label>
       <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
     </div>
   );
