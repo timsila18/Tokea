@@ -14,5 +14,5 @@ function communityTitle(slug: string) {
 export default async function CommunityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  return <EventCommunityChat eventTitle={communityTitle(slug)} />;
+  return <EventCommunityChat eventSlug={slug} eventTitle={communityTitle(slug)} />;
 }

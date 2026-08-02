@@ -57,7 +57,7 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
       </section>
-      <EventCommunityChat eventTitle={event.title} />
+      <EventCommunityChat eventSlug={event.slug} eventTitle={event.title} />
       <ModuleTable
         title="Event-Day Add Ons"
         columns={['Service', 'Status', 'Realtime Table']}

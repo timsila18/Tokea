@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Flag, Heart, Image as ImageIcon, Megaphone, MessageCircle, Pin, Reply, Send, Users } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
@@ -22,7 +22,7 @@ const seedPosts: Record<string, CommunityPost[]> = {
   Support: [{ id: 'support-1', author: 'Tokea Support', initials: 'TS', time: '35 min ago', body: 'Need help with an order, ticket, or transfer? Post the details here and our team will respond.', likes: 11, comments: [] }],
 };
 
-export function EventCommunityChat({ eventTitle }: { eventTitle: string }) {
+export function EventCommunityChat({ eventSlug, eventTitle }: { eventSlug: string; eventTitle: string }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [activeChannel, setActiveChannel] = useState('General');
   const [draft, setDraft] = useState('');
@@ -35,6 +35,25 @@ export function EventCommunityChat({ eventTitle }: { eventTitle: string }) {
   const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const activePosts = useMemo(() => posts[activeChannel] ?? [], [activeChannel, posts]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/communities/${eventSlug}/posts`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled || !data.connected || !Array.isArray(data.posts)) return;
+        const grouped = data.posts.reduce((accumulator: Record<string, CommunityPost[]>, post: CommunityPost & { channel?: string }) => {
+          const channel = post.channel ?? 'General';
+          accumulator[channel] = [...(accumulator[channel] ?? []), post];
+          return accumulator;
+        }, {});
+        setPosts((current) => ({ ...current, ...grouped }));
+      })
+      .catch(() => setNotice('Live community posts are unavailable right now. You can still compose locally while we reconnect.'));
+    return () => {
+      cancelled = true;
+    };
+  }, [eventSlug]);
 
   function selectPhotos(files: FileList | null) {
     const selected = Array.from(files ?? []).filter((file) => file.type.startsWith('image/'));
@@ -87,17 +106,25 @@ export function EventCommunityChat({ eventTitle }: { eventTitle: string }) {
     try {
       const mediaUrls = attachments.length > 0 ? await uploadPhotos() : [];
       const postChannel = mediaUrls.length > 0 ? 'Photos' : activeChannel;
+      const response = await fetch(`/api/communities/${eventSlug}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: postChannel, body: text, mediaUrls }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? 'Unable to publish this post.');
+      const savedPost = data.post as CommunityPost;
       setPosts((current) => ({
         ...current,
         [postChannel]: [
-          { id: `${postChannel}-${Date.now()}`, author: 'You', initials: 'YO', time: 'Just now', body: text || 'Shared event photos.', likes: 0, comments: [], mediaUrls },
+          savedPost,
           ...(current[postChannel] ?? []),
         ],
       }));
       setActiveChannel(postChannel);
       setDraft('');
       setAttachments([]);
-      setNotice(mediaUrls.length > 0 ? 'Photos posted to the event community.' : '');
+      setNotice(mediaUrls.length > 0 ? 'Photos posted to the event community.' : 'Post shared to the event community.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Unable to post photos. Please try again.');
     } finally {
@@ -116,7 +143,7 @@ export function EventCommunityChat({ eventTitle }: { eventTitle: string }) {
 
   return (
     <section className="community-workspace" id="community">
-      <header className="community-hero"><div><div className="community-title-row"><span className="community-mark"><Users size={20} /></span><p>Event community</p></div><h1>{eventTitle} Community</h1><p>Meet people, get event updates, plan your day, and keep the good conversations going.</p></div><button className={joined ? 'button secondary' : 'button'} onClick={() => setJoined((value) => !value)} type="button">{joined ? 'Joined community' : 'Join community'}</button></header>
+      <header className="community-hero"><div><div className="community-title-row"><span className="community-mark"><Users size={20} /></span><p>Event community</p></div><h1>{eventTitle} Community</h1><p>Share memories after the event, post photos from your night, and keep the conversation moving like a social feed.</p></div><button className={joined ? 'button secondary' : 'button'} onClick={() => setJoined((value) => !value)} type="button">{joined ? 'Joined community' : 'Join community'}</button></header>
       <div className="community-layout community-workspace-layout">
         <aside className="community-channels">
           <div className="community-channel-heading"><strong>Channels</strong><span>{joined ? 'Joined' : 'Public'}</span></div>
@@ -136,7 +163,7 @@ export function EventCommunityChat({ eventTitle }: { eventTitle: string }) {
           <form className="community-composer photo-composer" onSubmit={(event) => void submit(event)}>
             <span className="post-avatar mine">YO</span>
             <div className="community-composer-main">
-              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={activeChannel === 'Photos' ? `Share photos and memories from ${eventTitle}...` : `Start a conversation in ${activeChannel}...`} />
+              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={activeChannel === 'Photos' ? `Post photos from ${eventTitle}...` : `Start a conversation in ${activeChannel}...`} />
               {attachments.length > 0 && (
                 <div className="composer-photo-preview">
                   {attachments.map((item) => (
