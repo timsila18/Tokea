@@ -49,6 +49,13 @@ function shiftWindow(fields: Record<string, string>, startsAt?: string | null) {
   };
 }
 
+function optionalTimestamp(fields: Record<string, string>, key: string) {
+  const value = fields[key];
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 async function findAuthUserByEmail(email: string) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -169,10 +176,10 @@ export async function POST(request: NextRequest) {
     let message = 'Saved to your organizer workspace.';
     switch (action) {
       case 'ticket_type':
-        ({ error } = await auth.supabase.from('ticket_types').insert({ event_id: eventId!, name: ticketTypeName(fields), description: fields.description?.trim() || null, price_cents: amount(fields, 'priceKes'), quantity_total: Number(text(fields, 'quantity', 1, 7)), sales_start_at: fields.salesStart ? new Date(fields.salesStart).toISOString() : null, is_active: true }));
+        ({ error } = await auth.supabase.from('ticket_types').insert({ event_id: eventId!, name: ticketTypeName(fields), description: fields.description?.trim() || null, price_cents: amount(fields, 'priceKes'), quantity_total: Number(text(fields, 'quantity', 1, 7)), sales_start_at: optionalTimestamp(fields, 'salesStart'), sales_end_at: optionalTimestamp(fields, 'salesEnd'), is_active: true }));
         break;
       case 'campaign':
-        ({ error } = await auth.supabase.from('marketing_campaigns').insert({ event_id: eventId!, name: text(fields, 'name', 2, 120), channel: text(fields, 'channel', 2, 40), message: text(fields, 'message', 2, 1000), status: 'draft', created_by: auth.user.id }));
+        ({ error } = await auth.supabase.from('marketing_campaigns').insert({ event_id: eventId!, name: text(fields, 'name', 2, 120), channel: text(fields, 'channel', 2, 40), message: text(fields, 'message', 2, 1000), status: 'draft', starts_at: optionalTimestamp(fields, 'startsAt'), ends_at: optionalTimestamp(fields, 'endsAt'), created_by: auth.user.id }));
         break;
       case 'task':
         {
@@ -227,7 +234,11 @@ export async function POST(request: NextRequest) {
           providerId = provider.id;
         }
         await auth.supabase.from('event_feature_settings').upsert({ event_id: eventId!, triplink_active: true });
-        ({ error } = await auth.supabase.from('transport_routes').insert({ event_id: eventId!, transport_provider_id: providerId, route_name: text(fields, 'routeName', 2, 120), pickup_points: text(fields, 'pickupPoints', 2, 500).split(',').map((point) => point.trim()).filter(Boolean), dropoff_points: [text(fields, 'dropoffPoint', 2, 160)], price_cents: amount(fields, 'priceKes'), capacity: Number(text(fields, 'capacity', 1, 6)) }));
+        const schedules = [
+          optionalTimestamp(fields, 'departureAt') ? { label: 'First departure', departs_at: optionalTimestamp(fields, 'departureAt') } : null,
+          optionalTimestamp(fields, 'returnAt') ? { label: 'Return departure', departs_at: optionalTimestamp(fields, 'returnAt') } : null,
+        ].filter(Boolean);
+        ({ error } = await auth.supabase.from('transport_routes').insert({ event_id: eventId!, transport_provider_id: providerId, route_name: text(fields, 'routeName', 2, 120), pickup_points: text(fields, 'pickupPoints', 2, 500).split(',').map((point) => point.trim()).filter(Boolean), dropoff_points: [text(fields, 'dropoffPoint', 2, 160)], schedules, price_cents: amount(fields, 'priceKes'), capacity: Number(text(fields, 'capacity', 1, 6)) }));
         break;
       }
       case 'sponsorship_package':

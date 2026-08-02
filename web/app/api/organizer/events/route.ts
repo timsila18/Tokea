@@ -8,6 +8,7 @@ const eventSchema = z.object({
   description: z.string().max(4000).optional(),
   venue: z.string().min(2).max(180),
   startsAt: z.string().datetime(),
+  endsAt: z.string().datetime().optional(),
 });
 
 export async function GET() {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
   const { data: organizer } = await auth.supabase.from('organizer_profiles').select('id').eq('profile_id', auth.user.id).maybeSingle();
   if (!organizer) return NextResponse.json({ error: 'Your organizer profile is not ready yet.' }, { status: 403 });
-  const payload = { organizer_id: organizer.id, title: parsed.data.title.trim(), description: parsed.data.description?.trim() || null, location_name: parsed.data.venue.trim(), venue: parsed.data.venue.trim(), starts_at: parsed.data.startsAt, status: 'draft' as const };
+  const payload = { organizer_id: organizer.id, title: parsed.data.title.trim(), description: parsed.data.description?.trim() || null, location_name: parsed.data.venue.trim(), venue: parsed.data.venue.trim(), starts_at: parsed.data.startsAt, ends_at: parsed.data.endsAt ?? null, status: 'draft' as const };
   const query = parsed.data.id
     ? auth.supabase.from('events').update(payload).eq('id', parsed.data.id).select('id').single()
     : auth.supabase.from('events').insert(payload).select('id').single();

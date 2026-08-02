@@ -129,7 +129,10 @@ function CreateEventWizard() {
   const [form, setForm] = useState({
     title: '',
     category: 'Music',
-    startsAt: '',
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
     venue: '',
     venueAddress: '',
     venueCity: 'Nairobi',
@@ -145,8 +148,16 @@ function CreateEventWizard() {
   }
 
   async function saveDraft() {
-    if (!form.title.trim() || !form.startsAt || !form.venue.trim()) {
-      setSaveMessage('Add an event name, start date, and venue before saving this draft.');
+    if (!form.title.trim() || !form.startDate || !form.startTime || !form.venue.trim()) {
+      setSaveMessage('Add an event name, start date, start time, and venue before saving this draft.');
+      setStep(0);
+      return null;
+    }
+
+    const startsAt = new Date(`${form.startDate}T${form.startTime}:00+03:00`);
+    const endsAt = form.endDate && form.endTime ? new Date(`${form.endDate}T${form.endTime}:00+03:00`) : null;
+    if (Number.isNaN(startsAt.getTime()) || (endsAt && Number.isNaN(endsAt.getTime()))) {
+      setSaveMessage('Choose a valid event date and time before saving this draft.');
       setStep(0);
       return null;
     }
@@ -161,7 +172,8 @@ function CreateEventWizard() {
         title: form.title,
         description: form.description,
         venue: form.venue,
-        startsAt: new Date(`${form.startsAt}T18:00:00+03:00`).toISOString(),
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt?.toISOString() ?? undefined,
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -285,7 +297,10 @@ function CreateEventWizard() {
               <div className="wizard-form">
                 <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /></label>
                 <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}><option>Music</option><option>Business</option><option>Technology</option><option>Festival</option></select></label>
-                <label>Start date<input value={form.startsAt} onChange={(event) => updateField('startsAt', event.target.value)} type="date" /></label>
+                <label>Start date<input value={form.startDate} onChange={(event) => updateField('startDate', event.target.value)} type="date" /></label>
+                <label>Start time<input value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} type="time" /></label>
+                <label>End date<input value={form.endDate} onChange={(event) => updateField('endDate', event.target.value)} type="date" /></label>
+                <label>End time<input value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} type="time" /></label>
                 <label>Venue<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /></label>
                 <label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label>
               </div>
@@ -324,7 +339,7 @@ function CreateEventWizard() {
             {step === wizardSteps.length - 1 && (
               <div className="wizard-preview">
                 <strong>{form.title || 'Untitled event'}</strong>
-                <span>{form.venue || 'Venue to be confirmed'} - {form.startsAt || 'Date to be confirmed'}</span>
+                <span>{form.venue || 'Venue to be confirmed'} - {form.startDate || 'Date to be confirmed'} {form.startTime || ''}</span>
                 <p>Review each section, save the draft, then publish when the event is ready.</p>
                 <Link href="/dashboard/organizer/events" className="button">Preview event</Link>
               </div>
@@ -345,7 +360,7 @@ function CreateEventWizard() {
 
 function WizardStageFields({ step }: { step: number }) {
   const fields: Record<number, [string, string, string][]> = {
-    3: [['Schedule title', 'text', 'Main programme'], ['Start time', 'time', ''], ['End time', 'time', '']],
+    3: [['Schedule title', 'text', 'Main programme'], ['Schedule date', 'date', ''], ['Start time', 'time', ''], ['End time', 'time', '']],
     5: [['Food vendor brief', 'text', 'Cuisine and stall requirements'], ['Vendor fee (KES)', 'number', '']],
     6: [['Pickup points', 'text', 'CBD, Westlands'], ['Seats required', 'number', '100']],
     7: [['Staff roles required', 'text', 'Security, ushers, scanners'], ['Staff target', 'number', '20']],
@@ -371,6 +386,7 @@ function TicketStageFields() {
       <label>Price (KES)<input type="number" placeholder="2500" /></label>
       <label>Quantity<input type="number" placeholder="500" /></label>
       <label>Sales start<input type="datetime-local" /></label>
+      <label>Sales end<input type="datetime-local" /></label>
       <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
     </div>
   );
