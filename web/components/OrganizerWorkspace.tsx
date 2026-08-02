@@ -33,6 +33,7 @@ const modules: Record<string, Module> = {
 };
 
 const wizardSteps = ['Basic details', 'Venue', 'Media', 'Schedule', 'Tickets', 'Foodo', 'Triplink', 'Staff', 'Volunteers', 'Sponsors', 'Budget', 'Marketing', 'Preview'];
+const standardTicketTypes = ['Regular', 'VIP', 'VVIP', 'Regular Group of 5', 'Gate Regular'];
 
 const workflowActions: Record<string, OrganizerAction> = {
   ticketing: 'ticket_type',
@@ -316,7 +317,9 @@ function CreateEventWizard() {
               </div>
             )}
 
-            {step > 2 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
+            {step === 4 && <TicketStageFields />}
+
+            {step > 2 && step !== 4 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
 
             {step === wizardSteps.length - 1 && (
               <div className="wizard-preview">
@@ -343,7 +346,6 @@ function CreateEventWizard() {
 function WizardStageFields({ step }: { step: number }) {
   const fields: Record<number, [string, string, string][]> = {
     3: [['Schedule title', 'text', 'Main programme'], ['Start time', 'time', ''], ['End time', 'time', '']],
-    4: [['Ticket name', 'text', 'Regular'], ['Price (KES)', 'number', '2500'], ['Quantity', 'number', '500']],
     5: [['Food vendor brief', 'text', 'Cuisine and stall requirements'], ['Vendor fee (KES)', 'number', '']],
     6: [['Pickup points', 'text', 'CBD, Westlands'], ['Seats required', 'number', '100']],
     7: [['Staff roles required', 'text', 'Security, ushers, scanners'], ['Staff target', 'number', '20']],
@@ -358,6 +360,18 @@ function WizardStageFields({ step }: { step: number }) {
       {(fields[step] ?? []).map(([label, type, placeholder]) => (
         <label key={label}>{label}<input type={type} placeholder={placeholder} /></label>
       ))}
+    </div>
+  );
+}
+
+function TicketStageFields() {
+  return (
+    <div className="wizard-form">
+      <label>Ticket type<select defaultValue="Regular">{standardTicketTypes.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
+      <label>Price (KES)<input type="number" placeholder="2500" /></label>
+      <label>Quantity<input type="number" placeholder="500" /></label>
+      <label>Sales start<input type="datetime-local" /></label>
+      <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
     </div>
   );
 }

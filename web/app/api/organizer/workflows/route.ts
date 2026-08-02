@@ -10,6 +10,7 @@ const actionSchema = z.object({
 });
 
 const eventActions = new Set(['ticket_type', 'campaign', 'task', 'staff_invite', 'volunteer_opportunity', 'vendor_request', 'foodo', 'triplink_route', 'sponsorship_package', 'budget', 'workspace']);
+const standardTicketTypes = new Set(['Regular', 'VIP', 'VVIP', 'Regular Group of 5', 'Gate Regular']);
 
 function text(fields: Record<string, string>, key: string, min = 1, max = 500) {
   const value = fields[key]?.trim() ?? '';
@@ -21,6 +22,12 @@ function amount(fields: Record<string, string>, key: string) {
   const value = Math.round(Number(fields[key]) * 100);
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`Enter a valid ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}.`);
   return value;
+}
+
+function ticketTypeName(fields: Record<string, string>) {
+  const name = text(fields, 'name', 2, 80);
+  if (!standardTicketTypes.has(name)) throw new Error('Choose a valid Tokea ticket type.');
+  return name;
 }
 
 function optionalEmail(fields: Record<string, string>, key: string) {
@@ -162,7 +169,7 @@ export async function POST(request: NextRequest) {
     let message = 'Saved to your organizer workspace.';
     switch (action) {
       case 'ticket_type':
-        ({ error } = await auth.supabase.from('ticket_types').insert({ event_id: eventId!, name: text(fields, 'name', 2, 80), description: fields.description?.trim() || null, price_cents: amount(fields, 'priceKes'), quantity_total: Number(text(fields, 'quantity', 1, 7)), sales_start_at: fields.salesStart ? new Date(fields.salesStart).toISOString() : null, is_active: true }));
+        ({ error } = await auth.supabase.from('ticket_types').insert({ event_id: eventId!, name: ticketTypeName(fields), description: fields.description?.trim() || null, price_cents: amount(fields, 'priceKes'), quantity_total: Number(text(fields, 'quantity', 1, 7)), sales_start_at: fields.salesStart ? new Date(fields.salesStart).toISOString() : null, is_active: true }));
         break;
       case 'campaign':
         ({ error } = await auth.supabase.from('marketing_campaigns').insert({ event_id: eventId!, name: text(fields, 'name', 2, 120), channel: text(fields, 'channel', 2, 40), message: text(fields, 'message', 2, 1000), status: 'draft', created_by: auth.user.id }));
