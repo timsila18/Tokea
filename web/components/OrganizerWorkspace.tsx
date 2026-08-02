@@ -14,6 +14,13 @@ type Module = {
   rows: [string, string, string][];
 };
 type ActiveOrganizerAction = { action: OrganizerAction; initialFields?: Record<string, string> };
+type OrganizerReport = {
+  title: string;
+  cadence: string;
+  audience: string;
+  insight: string;
+  metrics: [string, string][];
+};
 
 const modules: Record<string, Module> = {
   events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
@@ -168,6 +175,19 @@ const marketingChannelUses = [
   ['Campus ambassadors', 'Creator codes and field promotion for student-heavy events and youth culture.'],
 ];
 
+const organizerReports: OrganizerReport[] = [
+  { title: 'Executive Event Snapshot', cadence: 'Daily during campaign, hourly on event day', audience: 'Organizer directors and investors', insight: 'One page view of sales, attendance, readiness, revenue, risk, and next actions.', metrics: [['Gross revenue', 'KES 642K'], ['Tickets sold', '1,245'], ['Readiness', '78%']] },
+  { title: 'Ticket Sales & Conversion', cadence: 'Daily', audience: 'Ticketing and marketing leads', insight: 'Shows sales by ticket type, sales velocity, abandoned checkouts, promo code performance, and remaining inventory.', metrics: [['Conversion', '4.8%'], ['VIP sold', '205'], ['Inventory left', '38%']] },
+  { title: 'Revenue, Fees & Payouts', cadence: 'Daily and after settlement', audience: 'Finance and organizer owners', insight: 'Tracks gross revenue, platform fees, M-Pesa reconciliation, refunds, expenses, payout requests, and projected profit.', metrics: [['Net projection', 'KES 284K'], ['Payout queue', '2'], ['Refund risk', '1.2%']] },
+  { title: 'Marketing Attribution', cadence: 'After each campaign push', audience: 'Growth team', insight: 'Compares Instagram, TikTok, WhatsApp, Facebook, creator codes, and radio against clicks, saves, interested users, and purchases.', metrics: [['Top source', 'Instagram'], ['Promo sales', '198'], ['Interested', '1,862']] },
+  { title: 'Audience & Community', cadence: 'Weekly and post-event', audience: 'Experience and community teams', insight: 'Reports saved events, going/interested counts, attendee location, comments, community posts, reviews, photos, and sentiment.', metrics: [['Community posts', '128'], ['Going', '1,245'], ['Rating', '4.7']] },
+  { title: 'Operations Readiness', cadence: 'Every planning meeting', audience: 'Operations lead', insight: 'Checks venue readiness, permits, vendors, gates, scanner tests, emergency exits, production tasks, and blocked work.', metrics: [['Tasks done', '38 / 52'], ['Blocked', '4'], ['Approvals', '7']] },
+  { title: 'Staffing & Attendance', cadence: 'Daily in final week, live on event day', audience: 'Workforce lead', insight: 'Shows required roles, assigned staff, shift coverage, check-ins, late arrivals, missed shifts, tasks completed, and incidents.', metrics: [['Assigned', '18 / 24'], ['Attendance', '96%'], ['Incidents', '2']] },
+  { title: 'Vendor, Foodo & Triplink', cadence: 'Weekly, then event day', audience: 'Partner operations', insight: 'Summarizes vendor approvals, Foodo stall readiness, menus, transport routes, seats booked, pickup points, and partner issues.', metrics: [['Food vendors', '6'], ['Routes', '3'], ['Seats booked', '184']] },
+  { title: 'Sponsor Delivery', cadence: 'Weekly and post-event', audience: 'Commercial team and sponsors', insight: 'Tracks sponsor packages, deliverables, social mentions, booth placements, impressions, photos, and proof-of-performance.', metrics: [['Secured', 'KES 180K'], ['Deliverables', '82%'], ['Open proposals', '4']] },
+  { title: 'Post-Event Performance Pack', cadence: '24-72 hours after event', audience: 'Organizer, sponsors, venue, and investors', insight: 'A premium closeout report combining revenue, attendance, reviews, media, operations, incidents, sponsor proof, and recommendations.', metrics: [['Attendance', '1,184'], ['NPS', '68'], ['Next event leads', '412']] },
+];
+
 export function OrganizerWorkspace({ module }: { module: string }) {
   if (module === 'create') return <CreateEventWizard />;
 
@@ -177,11 +197,13 @@ export function OrganizerWorkspace({ module }: { module: string }) {
   const rows = useMemo(() => (filter === 'All' ? config.rows : config.rows.filter((row) => row[2].toLowerCase().includes(filter.toLowerCase()))), [config.rows, filter]);
 
   function exportReport() {
-    const report = ['Metric,Value', ...config.metrics.map(([label, value]) => `${label},${value}`)].join('\n');
+    const report = module === 'analytics'
+      ? ['Report,Cadence,Audience,Key Insight,Metric 1,Metric 2,Metric 3', ...organizerReports.map((item) => [item.title, item.cadence, item.audience, item.insight, ...item.metrics.map(([label, value]) => `${label}: ${value}`)].map(csvCell).join(','))].join('\n')
+      : ['Metric,Value', ...config.metrics.map(([label, value]) => `${label},${value}`)].join('\n');
     const url = URL.createObjectURL(new Blob([report], { type: 'text/csv' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'tokea-organizer-analytics.csv';
+    anchor.download = module === 'analytics' ? 'tokea-organizer-report-suite.csv' : 'tokea-organizer-analytics.csv';
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -263,8 +285,52 @@ export function OrganizerWorkspace({ module }: { module: string }) {
           </tbody>
         </table>
       </section>
+      {module === 'analytics' && <OrganizerReportSuite onExport={exportReport} />}
       {activeAction && <OrganizerActionForm action={activeAction.action} initialFields={activeAction.initialFields} onClose={() => setActiveAction(null)} />}
     </div>
+  );
+}
+
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function OrganizerReportSuite({ onExport }: { onExport: () => void }) {
+  return (
+    <section className="organizer-report-suite">
+      <div className="report-suite-head">
+        <div>
+          <p className="section-kicker">Organizer intelligence</p>
+          <h2>Premium Report Suite</h2>
+          <p>Classy board-pack style reports for planning meetings, event-day command, sponsor updates, and post-event closeout.</p>
+        </div>
+        <div>
+          <button className="button secondary" type="button" onClick={() => window.print()}><Download size={16} />Print pack</button>
+          <button className="button" type="button" onClick={onExport}><Download size={16} />Export data</button>
+        </div>
+      </div>
+      <div className="report-card-grid">
+        {organizerReports.map((report, index) => (
+          <article className="report-card" key={report.title}>
+            <div className="report-number">{String(index + 1).padStart(2, '0')}</div>
+            <div>
+              <span>{report.cadence}</span>
+              <h3>{report.title}</h3>
+              <p>{report.insight}</p>
+              <small>For: {report.audience}</small>
+            </div>
+            <dl>
+              {report.metrics.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

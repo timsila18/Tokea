@@ -1843,6 +1843,23 @@ button {
 .marketing-channel-guide article { background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 4px; padding: 10px; }
 .marketing-channel-guide b { color: var(--text); font-size: 12px; }
 .marketing-channel-guide span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.organizer-report-suite { margin-top: 18px; }
+.report-suite-head { align-items: flex-end; background: linear-gradient(135deg, rgba(212,175,55,.13), rgba(255,45,122,.06), rgba(255,255,255,.035)); border: 1px solid rgba(212,175,55,.25); border-radius: 14px; display: flex; gap: 18px; justify-content: space-between; padding: 22px; }
+.report-suite-head h2 { font-size: 30px; margin: 5px 0; }
+.report-suite-head p:not(.section-kicker) { color: var(--muted); margin: 0; max-width: 760px; }
+.report-suite-head > div:last-child { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.report-card-grid { display: grid; gap: 14px; grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 14px; }
+.report-card { background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.022)); border: 1px solid var(--line-strong); border-radius: 12px; display: grid; gap: 16px; grid-template-columns: auto minmax(0,1fr); padding: 18px; position: relative; }
+.report-card::after { background: linear-gradient(90deg, var(--gold), var(--pink)); border-radius: 999px; content: ""; height: 2px; inset: auto 18px 0; opacity: .72; position: absolute; }
+.report-number { align-items: center; background: rgba(212,175,55,.13); border: 1px solid rgba(212,175,55,.32); border-radius: 50%; color: var(--gold); display: inline-flex; font-size: 12px; font-weight: 900; height: 42px; justify-content: center; width: 42px; }
+.report-card span { color: var(--gold); display: block; font-size: 11px; font-weight: 900; line-height: 1.4; text-transform: uppercase; }
+.report-card h3 { font-size: 20px; margin: 6px 0; }
+.report-card p { color: var(--muted); font-size: 13px; line-height: 1.48; margin: 0; }
+.report-card small { color: rgba(255,255,255,.52); display: block; font-size: 12px; margin-top: 9px; }
+.report-card dl { display: grid; gap: 8px; grid-column: 1 / -1; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0; }
+.report-card dl div { background: rgba(0,0,0,.24); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.report-card dt { color: var(--muted); font-size: 11px; }
+.report-card dd { color: var(--text); font-size: 16px; font-weight: 900; margin: 4px 0 0; }
 .picker-help { color: var(--gold); font-size: 11px; font-weight: 750; line-height: 1.35; }
 .picker-input { color-scheme: dark; cursor: pointer; padding-right: 44px !important; }
 .picker-input::-webkit-calendar-picker-indicator { background-color: rgba(212,175,55,.9); border-radius: 6px; cursor: pointer; filter: invert(0); height: 18px; opacity: 1; padding: 5px; width: 18px; }
@@ -2057,6 +2074,9 @@ button {
   .wizard-form { grid-template-columns: 1fr; }
   .wizard-form .wide { grid-column: auto; }
   .marketing-channel-guide > div { grid-template-columns: 1fr; }
+  .report-suite-head { align-items: flex-start; flex-direction: column; }
+  .report-card-grid { grid-template-columns: 1fr; }
+  .report-card dl { grid-template-columns: 1fr; }
   .workflow-grid { grid-template-columns: 1fr; }
   .workflow-grid .wide { grid-column: auto; }
   .attendee-home { padding: 22px 14px 32px; }
