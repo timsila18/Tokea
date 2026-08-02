@@ -30,6 +30,27 @@ function ticketTypeName(fields: Record<string, string>) {
   return name;
 }
 
+function ticketTypeRows(fields: Record<string, string>) {
+  if (!fields.ticketTypes) {
+    return [{ name: ticketTypeName(fields), priceKes: fields.priceKes, quantity: fields.quantity }];
+  }
+
+  const parsed = JSON.parse(fields.ticketTypes) as unknown;
+  if (!Array.isArray(parsed)) throw new Error('Choose valid ticket categories.');
+  const rows = parsed.map((item) => {
+    if (!item || typeof item !== 'object') throw new Error('Choose valid ticket categories.');
+    const record = item as Record<string, unknown>;
+    const name = String(record.name ?? '');
+    if (!standardTicketTypes.has(name)) throw new Error('Choose valid ticket categories.');
+    const priceKes = String(record.priceKes ?? '');
+    const quantity = String(record.quantity ?? '');
+    return { name, priceKes, quantity };
+  }).filter((row) => Number(row.quantity) > 0);
+
+  if (rows.length === 0) throw new Error('Add quantity for at least one ticket category.');
+  return rows;
+}
+
 function optionalEmail(fields: Record<string, string>, key: string) {
   const value = fields[key]?.trim().toLowerCase();
   return value && z.string().email().safeParse(value).success ? value : null;
@@ -176,7 +197,21 @@ export async function POST(request: NextRequest) {
     let message = 'Saved to your organizer workspace.';
     switch (action) {
       case 'ticket_type':
-        ({ error } = await auth.supabase.from('ticket_types').insert({ event_id: eventId!, name: ticketTypeName(fields), description: fields.description?.trim() || null, price_cents: amount(fields, 'priceKes'), quantity_total: Number(text(fields, 'quantity', 1, 7)), sales_start_at: optionalTimestamp(fields, 'salesStart'), sales_end_at: optionalTimestamp(fields, 'salesEnd'), is_active: true }));
+        {
+          const rows = ticketTypeRows(fields).map((row, index) => ({
+            event_id: eventId!,
+            name: row.name,
+            description: fields.description?.trim() || null,
+            price_cents: amount({ priceKes: row.priceKes }, 'priceKes'),
+            quantity_total: Number(text({ quantity: row.quantity }, 'quantity', 1, 7)),
+            sales_start_at: optionalTimestamp(fields, 'salesStart'),
+            sales_end_at: optionalTimestamp(fields, 'salesEnd'),
+            sort_order: index,
+            is_active: true,
+          }));
+          ({ error } = await auth.supabase.from('ticket_types').insert(rows));
+          message = `${rows.length} ticket categor${rows.length === 1 ? 'y' : 'ies'} created.`;
+        }
         break;
       case 'campaign':
         ({ error } = await auth.supabase.from('marketing_campaigns').insert({ event_id: eventId!, name: text(fields, 'name', 2, 120), channel: text(fields, 'channel', 2, 40), message: text(fields, 'message', 2, 1000), status: 'draft', starts_at: optionalTimestamp(fields, 'startsAt'), ends_at: optionalTimestamp(fields, 'endsAt'), created_by: auth.user.id }));

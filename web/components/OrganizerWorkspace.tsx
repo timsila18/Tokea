@@ -34,6 +34,19 @@ const modules: Record<string, Module> = {
 
 const wizardSteps = ['Basic details', 'Venue', 'Media', 'Schedule', 'Tickets', 'Foodo', 'Triplink', 'Staff', 'Volunteers', 'Sponsors', 'Budget', 'Marketing', 'Preview'];
 const standardTicketTypes = ['Regular', 'VIP', 'VVIP', 'Regular Group of 5', 'Gate Regular'];
+const eventCategories = ['Music', 'Gospel', 'Sports', 'Business', 'Technology', 'Fashion', 'Comedy', 'Festivals', 'Conferences', 'Nightlife'];
+const venueSuggestions = ['KICC', 'Uhuru Gardens', 'The Carnivore Grounds', 'Sarit Expo Centre', 'Two Rivers Mall', 'The Hub Karen', 'Kenyatta Stadium', 'Nairobi Street Kitchen', 'Bomas of Kenya', 'The Standup Lounge'];
+const cityOptions = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Naivasha', 'Thika', 'Machakos', 'Diani', 'Nanyuki'];
+const wizardSuggestions: Record<number, [string, string, string, string[]?][]> = {
+  3: [['Schedule title', 'text', 'Main programme', ['Gates open', 'Opening act', 'Headline performance', 'VIP check-in', 'After party']], ['Schedule date', 'date', ''], ['Start time', 'time', ''], ['End time', 'time', '']],
+  5: [['Food vendor brief', 'text', 'Cuisine and stall requirements', ['Nyama choma village', 'Cocktail bars', 'Street food court', 'Coffee and dessert vendors']], ['Vendor fee (KES)', 'number', '']],
+  6: [['Pickup points', 'text', 'CBD, Westlands', ['CBD, Westlands, Kilimani', 'Thika Road, Kasarani, Roysambu', 'Ngong Road, Junction, Karen']], ['Seats required', 'number', '100']],
+  7: [['Staff roles required', 'text', 'Security, ushers, scanners', ['Security, ushers, scanners', 'VIP hosts, gate scanners, media crew', 'Parking, sanitation, medical desk']], ['Staff target', 'number', '20']],
+  8: [['Volunteer opportunity', 'text', 'Guest experience team', ['Guest experience team', 'Green team', 'Information desk', 'Lost and found']], ['Volunteers required', 'number', '10']],
+  9: [['Sponsorship package', 'text', 'Gold partner', ['Title Partner', 'Gold Partner', 'Stage Partner', 'Beverage Partner', 'Media Partner']], ['Package value (KES)', 'number', '']],
+  10: [['Budget category', 'text', 'Production', ['Venue', 'Production', 'Security', 'Marketing', 'Talent', 'Staffing', 'Permits']], ['Budget (KES)', 'number', '']],
+  11: [['Campaign name', 'text', 'Launch campaign', ['Launch campaign', 'Early bird push', 'Final week sales', 'Influencer reel burst']], ['Primary channel', 'text', 'Instagram', ['Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'X', 'Telegram']]],
+};
 
 const workflowActions: Record<string, OrganizerAction> = {
   ticketing: 'ticket_type',
@@ -296,20 +309,20 @@ function CreateEventWizard() {
             {step === 0 && (
               <div className="wizard-form">
                 <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /></label>
-                <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}><option>Music</option><option>Business</option><option>Technology</option><option>Festival</option></select></label>
+                <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}>{eventCategories.map((category) => <option key={category}>{category}</option>)}</select></label>
                 <label>Start date<input value={form.startDate} onChange={(event) => updateField('startDate', event.target.value)} type="date" /></label>
                 <label>Start time<input value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} type="time" /></label>
                 <label>End date<input value={form.endDate} onChange={(event) => updateField('endDate', event.target.value)} type="date" /></label>
                 <label>End time<input value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} type="time" /></label>
-                <label>Venue<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /></label>
+                <label>Venue<input list="event-venue-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /><datalist id="event-venue-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist></label>
                 <label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label>
               </div>
             )}
 
             {step === 1 && (
               <div className="wizard-form">
-                <label>Venue name<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /></label>
-                <label>City<input value={form.venueCity} onChange={(event) => updateField('venueCity', event.target.value)} placeholder="Nairobi" /></label>
+                <label>Venue name<input list="venue-name-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /><datalist id="venue-name-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist></label>
+                <label>City<select value={form.venueCity} onChange={(event) => updateField('venueCity', event.target.value)}>{cityOptions.map((city) => <option key={city}>{city}</option>)}</select></label>
                 <label>Capacity<input value={form.venueCapacity} onChange={(event) => updateField('venueCapacity', event.target.value)} type="number" placeholder="3000" /></label>
                 <label>Venue contact<input value={form.venueContact} onChange={(event) => updateField('venueContact', event.target.value)} type="tel" placeholder="2547..." /></label>
                 <label className="wide">Physical address<textarea value={form.venueAddress} onChange={(event) => updateField('venueAddress', event.target.value)} placeholder="Main entrance, parking guidance, access notes" /></label>
@@ -359,21 +372,10 @@ function CreateEventWizard() {
 }
 
 function WizardStageFields({ step }: { step: number }) {
-  const fields: Record<number, [string, string, string][]> = {
-    3: [['Schedule title', 'text', 'Main programme'], ['Schedule date', 'date', ''], ['Start time', 'time', ''], ['End time', 'time', '']],
-    5: [['Food vendor brief', 'text', 'Cuisine and stall requirements'], ['Vendor fee (KES)', 'number', '']],
-    6: [['Pickup points', 'text', 'CBD, Westlands'], ['Seats required', 'number', '100']],
-    7: [['Staff roles required', 'text', 'Security, ushers, scanners'], ['Staff target', 'number', '20']],
-    8: [['Volunteer opportunity', 'text', 'Guest experience team'], ['Volunteers required', 'number', '10']],
-    9: [['Sponsorship package', 'text', 'Gold partner'], ['Package value (KES)', 'number', '']],
-    10: [['Budget category', 'text', 'Production'], ['Budget (KES)', 'number', '']],
-    11: [['Campaign name', 'text', 'Launch campaign'], ['Primary channel', 'text', 'Instagram']],
-  };
-
   return (
     <div className="wizard-form">
-      {(fields[step] ?? []).map(([label, type, placeholder]) => (
-        <label key={label}>{label}<input type={type} placeholder={placeholder} /></label>
+      {(wizardSuggestions[step] ?? []).map(([label, type, placeholder, options]) => (
+        <label key={label}>{label}<input list={options ? `${label}-suggestions` : undefined} type={type} placeholder={placeholder} />{options && <datalist id={`${label}-suggestions`}>{options.map((option) => <option key={option} value={option} />)}</datalist>}</label>
       ))}
     </div>
   );
@@ -381,10 +383,9 @@ function WizardStageFields({ step }: { step: number }) {
 
 function TicketStageFields() {
   return (
-    <div className="wizard-form">
-      <label>Ticket type<select defaultValue="Regular">{standardTicketTypes.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
-      <label>Price (KES)<input type="number" placeholder="2500" /></label>
-      <label>Quantity<input type="number" placeholder="500" /></label>
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head"><strong>Standard ticket categories</strong><span>Configure several ticket types for this event instead of adding one at a time.</span></div>
+      {standardTicketTypes.map((name, index) => <div className="ticket-bulk-card" key={name}><strong>{name}</strong><label>Price (KES)<input type="number" placeholder={String([2500, 6500, 12000, 11000, 3000][index])} /></label><label>Quantity<input type="number" placeholder={String([500, 150, 50, 80, 300][index])} /></label></div>)}
       <label>Sales start<input type="datetime-local" /></label>
       <label>Sales end<input type="datetime-local" /></label>
       <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
