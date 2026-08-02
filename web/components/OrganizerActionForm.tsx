@@ -71,7 +71,11 @@ function ActionFields({ action, fields, setField }: { action: OrganizerAction; f
     const value = Array.isArray(option) ? option[0] : option;
     const display = Array.isArray(option) ? option[1] : option;
     return <option key={value} value={value}>{display}</option>;
-  })}</select></label>;
+  })}</select><div className="suggestion-chips">{options.slice(0, 5).map((option) => {
+    const value = Array.isArray(option) ? option[0] : option;
+    const display = Array.isArray(option) ? option[1] : option;
+    return <button type="button" key={value} onClick={() => setField(name, value)}>{display}</button>;
+  })}</div></label>;
   const textarea = (name: string, label: string, required = true) => <label className="wide" key={name}>{label}<textarea value={fields[name] ?? ''} onChange={(event) => setField(name, event.target.value)} required={required} /></label>;
   if (action === 'ticket_type') return <TicketTypeBulkFields fields={fields} setField={setField} />;
   if (action === 'campaign') return <div className="workflow-grid">{datalistInput('name', 'Campaign name', ['Launch campaign', 'Early bird push', 'Final week sales', 'VIP table push', 'Influencer reel burst'])}{select('channel', 'Channel', campaignChannels)}{input('startsAt', 'Campaign start', 'datetime-local', false)}{input('endsAt', 'Campaign end', 'datetime-local', false)}{textarea('message', 'Campaign message')}</div>;
@@ -79,7 +83,7 @@ function ActionFields({ action, fields, setField }: { action: OrganizerAction; f
   if (action === 'staff_invite') return <div className="workflow-grid">{input('email', 'Staff email', 'email')}{select('roleTitle', 'Role title', staffRoles)}{select('department', 'Department', departments)}{input('shiftStart', 'Shift start', 'datetime-local', false)}{input('shiftEnd', 'Shift end', 'datetime-local', false)}</div>;
   if (action === 'volunteer_opportunity') return <div className="workflow-grid">{select('title', 'Opportunity title', volunteerRoles)}{input('requiredCount', 'Volunteers required', 'number')}{input('volunteerEmail', 'Assign volunteer email', 'email', false)}{input('shiftStart', 'Shift start', 'datetime-local', false)}{input('shiftEnd', 'Shift end', 'datetime-local', false)}{textarea('description', 'Opportunity details', false)}</div>;
   if (action === 'vendor_request') return <div className="workflow-grid">{select('category', 'Service category', vendorCategories)}{input('budgetKes', 'Budget (KES)', 'number', false)}{textarea('requirements', 'Requirements')}</div>;
-  if (action === 'foodo') return <p className="workflow-note">Foodo will be enabled for this event. You can then publish food vendor requests, allocate stalls, approve menus, and monitor pre-orders.</p>;
+  if (action === 'foodo') return <div className="workflow-grid">{select('foodoBrief', 'Foodo brief', ['Nyama choma village', 'Cocktail bars', 'Street food court', 'Coffee and dessert vendors', 'VIP lounge catering'])}{input('vendorFeeKes', 'Vendor fee (KES)', 'number')}{input('vendorSlots', 'Vendor slots', 'number')}{input('menuDeadline', 'Menu deadline', 'datetime-local', false)}{textarea('requirements', 'Vendor requirements', false)}</div>;
   if (action === 'triplink_route') return <div className="workflow-grid">{select('routeName', 'Route name', triplinkRoutes)}{input('departureAt', 'First departure', 'datetime-local', false)}{input('returnAt', 'Return departure', 'datetime-local', false)}{input('priceKes', 'Price per seat (KES)', 'number')}{input('capacity', 'Seats available', 'number')}{datalistInput('pickupPoints', 'Pickup points (comma-separated)', pickupSuggestions)}{input('dropoffPoint', 'Dropoff point')}</div>;
   if (action === 'sponsorship_package') return <div className="workflow-grid">{select('name', 'Package name', sponsorshipPackages)}{input('priceKes', 'Price (KES)', 'number')}{input('inventory', 'Packages available', 'number')}{textarea('benefits', 'Benefits (one per line)')}</div>;
   if (action === 'budget') return <div className="workflow-grid">{select('category', 'Budget category', budgetCategories)}{input('budgetKes', 'Budget (KES)', 'number')}{textarea('notes', 'Notes', false)}</div>;

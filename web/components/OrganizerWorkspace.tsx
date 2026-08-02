@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, Download, ImagePlus, Plus, Save, Upload } from 'lucide-react';
 import { OrganizerActionForm, type OrganizerAction } from '@/components/OrganizerActionForm';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -38,15 +38,91 @@ const eventCategories = ['Music', 'Gospel', 'Sports', 'Business', 'Technology', 
 const venueSuggestions = ['KICC', 'Uhuru Gardens', 'The Carnivore Grounds', 'Sarit Expo Centre', 'Two Rivers Mall', 'The Hub Karen', 'Kenyatta Stadium', 'Nairobi Street Kitchen', 'Bomas of Kenya', 'The Standup Lounge'];
 const cityOptions = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Naivasha', 'Thika', 'Machakos', 'Diani', 'Nanyuki'];
 const eventNameSuggestions = ['Blankets & Wine Nairobi', 'Nairobi Gospel Night', 'Koroga Festival 2026', 'Campus Amapiano Festival', 'Tech Founders Summit'];
-const wizardSuggestions: Record<number, [string, string, string, string[]?][]> = {
-  3: [['Schedule title', 'text', 'Main programme', ['Gates open', 'Opening act', 'Headline performance', 'VIP check-in', 'After party']], ['Schedule date', 'date', ''], ['Start time', 'time', ''], ['End time', 'time', '']],
-  5: [['Food vendor brief', 'text', 'Cuisine and stall requirements', ['Nyama choma village', 'Cocktail bars', 'Street food court', 'Coffee and dessert vendors']], ['Vendor fee (KES)', 'number', '']],
-  6: [['Pickup points', 'text', 'CBD, Westlands', ['CBD, Westlands, Kilimani', 'Thika Road, Kasarani, Roysambu', 'Ngong Road, Junction, Karen']], ['Seats required', 'number', '100']],
-  7: [['Staff roles required', 'text', 'Security, ushers, scanners', ['Security, ushers, scanners', 'VIP hosts, gate scanners, media crew', 'Parking, sanitation, medical desk']], ['Staff target', 'number', '20']],
-  8: [['Volunteer opportunity', 'text', 'Guest experience team', ['Guest experience team', 'Green team', 'Information desk', 'Lost and found']], ['Volunteers required', 'number', '10']],
-  9: [['Sponsorship package', 'text', 'Gold partner', ['Title Partner', 'Gold Partner', 'Stage Partner', 'Beverage Partner', 'Media Partner']], ['Package value (KES)', 'number', '']],
-  10: [['Budget category', 'text', 'Production', ['Venue', 'Production', 'Security', 'Marketing', 'Talent', 'Staffing', 'Permits']], ['Budget (KES)', 'number', '']],
-  11: [['Campaign name', 'text', 'Launch campaign', ['Launch campaign', 'Early bird push', 'Final week sales', 'Influencer reel burst']], ['Primary channel', 'text', 'Instagram', ['Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'X', 'Telegram']]],
+type WizardField = {
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'time' | 'datetime-local' | 'select';
+  placeholder?: string;
+  options?: string[];
+  full?: boolean;
+  defaultValue?: string;
+};
+
+type WizardStepConfig = {
+  guidance: string;
+  fields: WizardField[];
+};
+
+const wizardSuggestions: Record<number, WizardStepConfig> = {
+  3: {
+    guidance: 'Build the run-of-show quickly with suggested programme titles and real schedule pickers.',
+    fields: [
+      { name: 'scheduleTitle', label: 'Schedule title', type: 'select', options: ['Gates open', 'Opening act', 'Headline performance', 'VIP check-in', 'After party', 'Main programme'], defaultValue: 'Gates open' },
+      { name: 'scheduleDate', label: 'Schedule date', type: 'date' },
+      { name: 'scheduleStartTime', label: 'Start time', type: 'time' },
+      { name: 'scheduleEndTime', label: 'End time', type: 'time' },
+    ],
+  },
+  5: {
+    guidance: 'Choose the Foodo setup instead of typing from scratch, then add the commercial basics.',
+    fields: [
+      { name: 'foodoBrief', label: 'Foodo brief', type: 'select', options: ['Nyama choma village', 'Cocktail bars', 'Street food court', 'Coffee and dessert vendors', 'VIP lounge catering'], defaultValue: 'Street food court' },
+      { name: 'vendorFeeKes', label: 'Vendor fee (KES)', type: 'number', placeholder: '15000' },
+      { name: 'foodVendorCount', label: 'Vendor slots', type: 'number', placeholder: '12' },
+      { name: 'menuDeadline', label: 'Menu submission deadline', type: 'datetime-local' },
+    ],
+  },
+  6: {
+    guidance: 'Pick common Nairobi pickup routes, then set seats and departure timing.',
+    fields: [
+      { name: 'pickupPoints', label: 'Pickup points', type: 'select', options: ['CBD, Westlands, Kilimani', 'Thika Road, Kasarani, Roysambu', 'Ngong Road, Junction, Karen', 'Mombasa Road, South B, South C', 'Kiambu Road, Ridgeways, Runda'], defaultValue: 'CBD, Westlands, Kilimani' },
+      { name: 'seatsRequired', label: 'Seats required', type: 'number', placeholder: '100' },
+      { name: 'firstDeparture', label: 'First departure', type: 'datetime-local' },
+      { name: 'returnDeparture', label: 'Return departure', type: 'datetime-local' },
+    ],
+  },
+  7: {
+    guidance: 'Select the staff mix your floor team needs and set shift coverage.',
+    fields: [
+      { name: 'staffRoles', label: 'Staff roles required', type: 'select', options: ['Security, ushers, scanners', 'VIP hosts, gate scanners, media crew', 'Parking, sanitation, medical desk', 'Backstage, runners, artist liaison'], defaultValue: 'Security, ushers, scanners' },
+      { name: 'staffTarget', label: 'Staff target', type: 'number', placeholder: '20' },
+      { name: 'staffShiftStart', label: 'Shift start', type: 'datetime-local' },
+      { name: 'staffShiftEnd', label: 'Shift end', type: 'datetime-local' },
+    ],
+  },
+  8: {
+    guidance: 'Publish volunteer opportunities with role suggestions and shift timing.',
+    fields: [
+      { name: 'volunteerOpportunity', label: 'Volunteer role', type: 'select', options: ['Guest experience team', 'Green team', 'Information desk', 'Lost and found', 'Queue marshals', 'Photo runners'], defaultValue: 'Guest experience team' },
+      { name: 'volunteersRequired', label: 'Volunteers required', type: 'number', placeholder: '10' },
+      { name: 'volunteerShiftStart', label: 'Shift start', type: 'datetime-local' },
+      { name: 'volunteerShiftEnd', label: 'Shift end', type: 'datetime-local' },
+    ],
+  },
+  9: {
+    guidance: 'Choose a sponsor package tier and capture the value in one step.',
+    fields: [
+      { name: 'sponsorshipPackage', label: 'Sponsorship package', type: 'select', options: ['Title Partner', 'Gold Partner', 'Silver Partner', 'Bronze Partner', 'Stage Partner', 'Beverage Partner', 'Media Partner'], defaultValue: 'Gold Partner' },
+      { name: 'packageValueKes', label: 'Package value (KES)', type: 'number', placeholder: '250000' },
+      { name: 'sponsorInventory', label: 'Packages available', type: 'number', placeholder: '3' },
+    ],
+  },
+  10: {
+    guidance: 'Use standard event budget categories so finance stays clean.',
+    fields: [
+      { name: 'budgetCategory', label: 'Budget category', type: 'select', options: ['Venue', 'Production', 'Security', 'Marketing', 'Talent', 'Staffing', 'Foodo setup', 'Triplink transport', 'Permits', 'Insurance', 'Contingency'], defaultValue: 'Production' },
+      { name: 'budgetKes', label: 'Budget (KES)', type: 'number', placeholder: '85000' },
+    ],
+  },
+  11: {
+    guidance: 'Pick a marketing channel and schedule the campaign window.',
+    fields: [
+      { name: 'campaignName', label: 'Campaign name', type: 'select', options: ['Launch campaign', 'Early bird push', 'Final week sales', 'VIP table push', 'Influencer reel burst'], defaultValue: 'Launch campaign' },
+      { name: 'primaryChannel', label: 'Primary channel', type: 'select', options: ['Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'X', 'Telegram', 'Radio', 'Campus ambassadors'], defaultValue: 'Instagram' },
+      { name: 'campaignStart', label: 'Campaign start', type: 'datetime-local' },
+      { name: 'campaignEnd', label: 'Campaign end', type: 'datetime-local' },
+    ],
+  },
 };
 
 const workflowActions: Record<string, OrganizerAction> = {
@@ -337,10 +413,10 @@ function CreateEventWizard() {
                 </div>
                 <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /><SuggestionChips options={eventNameSuggestions} onPick={(value) => updateField('title', value)} /></label>
                 <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}>{eventCategories.map((category) => <option key={category}>{category}</option>)}</select></label>
-                <label>Start date<input className="picker-input" value={form.startDate} onChange={(event) => updateField('startDate', event.target.value)} type="date" /><PickerHelp kind="date" /></label>
-                <label>Start time<input className="picker-input" value={form.startTime} onChange={(event) => updateField('startTime', event.target.value)} type="time" /><PickerHelp kind="time" /></label>
-                <label>End date<input className="picker-input" value={form.endDate} onChange={(event) => updateField('endDate', event.target.value)} type="date" /><PickerHelp kind="date" /></label>
-                <label>End time<input className="picker-input" value={form.endTime} onChange={(event) => updateField('endTime', event.target.value)} type="time" /><PickerHelp kind="time" /></label>
+                <PickerField label="Start date" type="date" value={form.startDate} onChange={(value) => updateField('startDate', value)} />
+                <PickerField label="Start time" type="time" value={form.startTime} onChange={(value) => updateField('startTime', value)} />
+                <PickerField label="End date" type="date" value={form.endDate} onChange={(value) => updateField('endDate', value)} />
+                <PickerField label="End time" type="time" value={form.endTime} onChange={(value) => updateField('endTime', value)} />
                 <label>Venue<input list="event-venue-suggestions" value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /><datalist id="event-venue-suggestions">{venueSuggestions.map((venue) => <option key={venue} value={venue} />)}</datalist><SuggestionChips options={venueSuggestions.slice(0, 5)} onPick={(value) => updateField('venue', value)} /></label>
                 <label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label>
               </div>
@@ -402,26 +478,70 @@ function CreateEventWizard() {
 }
 
 function WizardStageFields({ step }: { step: number }) {
+  const config = wizardSuggestions[step];
+  if (!config) return null;
+
   return (
     <div className="wizard-form">
-      {(wizardSuggestions[step] ?? []).map(([label, type, placeholder, options]) => (
-        <SuggestedField key={label} label={label} type={type} placeholder={placeholder} options={options} />
+      <div className="wide suggested-options-panel">
+        <strong>Recommended picks</strong>
+        <span>{config.guidance}</span>
+      </div>
+      {config.fields.map((field) => (
+        <SuggestedField key={field.name} field={field} />
       ))}
     </div>
   );
 }
 
-function SuggestedField({ label, type, placeholder, options }: { label: string; type: string; placeholder: string; options?: string[] }) {
-  const [value, setValue] = useState('');
-  return <label>{label}<input className={type === 'date' || type === 'time' || type === 'datetime-local' ? 'picker-input' : undefined} list={options ? `${label}-suggestions` : undefined} type={type} value={value} onChange={(event) => setValue(event.target.value)} placeholder={placeholder} />{(type === 'date' || type === 'time' || type === 'datetime-local') && <PickerHelp kind={type === 'time' ? 'time' : 'date'} />}{options && <><datalist id={`${label}-suggestions`}>{options.map((option) => <option key={option} value={option} />)}</datalist><SuggestionChips options={options.slice(0, 4)} onPick={setValue} /></>}</label>;
+function SuggestedField({ field }: { field: WizardField }) {
+  const [value, setValue] = useState(field.defaultValue ?? '');
+  if (field.type === 'date' || field.type === 'time' || field.type === 'datetime-local') {
+    return <PickerField label={field.label} type={field.type} value={value} onChange={setValue} />;
+  }
+
+  if (field.type === 'select') {
+    return (
+      <label className={field.full ? 'wide' : undefined}>
+        {field.label}
+        <select value={value} onChange={(event) => setValue(event.target.value)}>
+          {(field.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        {field.options && <SuggestionChips options={field.options} onPick={setValue} />}
+      </label>
+    );
+  }
+
+  return <label className={field.full ? 'wide' : undefined}>{field.label}<input type={field.type} value={value} onChange={(event) => setValue(event.target.value)} placeholder={field.placeholder} /></label>;
 }
 
 function SuggestionChips({ options, onPick }: { options: string[]; onPick: (value: string) => void }) {
   return <div className="suggestion-chips">{options.map((option) => <button type="button" key={option} onClick={() => onPick(option)}>{option}</button>)}</div>;
 }
 
+function PickerField({ label, type, value, onChange }: { label: string; type: 'date' | 'time' | 'datetime-local'; value: string; onChange: (value: string) => void }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const kind = type === 'time' ? 'time' : 'date';
+
+  function openPicker() {
+    inputRef.current?.showPicker?.();
+    inputRef.current?.focus();
+  }
+
+  return (
+    <label>
+      {label}
+      <div className="picker-control">
+        <input ref={inputRef} className="picker-input" value={value} onChange={(event) => onChange(event.target.value)} type={type} />
+        <button type="button" onClick={openPicker}>Pick {kind}</button>
+      </div>
+      <PickerHelp kind={kind} />
+    </label>
+  );
+}
+
 function PickerHelp({ kind }: { kind: 'date' | 'time' }) {
-  return <span className="picker-help">Click the {kind === 'date' ? 'calendar' : 'clock'} icon or the field to pick.</span>;
+  return <span className="picker-help">Use the Pick {kind} button or click inside the field.</span>;
 }
 
 function TicketStageFields() {
@@ -432,8 +552,8 @@ function TicketStageFields() {
     <div className="wizard-form ticket-bulk-grid">
       <div className="wide ticket-bulk-head"><strong>Standard ticket categories</strong><span>Configure several ticket types for this event instead of adding one at a time.</span></div>
       {standardTicketTypes.map((name, index) => <div className="ticket-bulk-card" key={name}><strong>{name}</strong><label>Price (KES)<input type="number" placeholder={String([2500, 6500, 12000, 11000, 3000][index])} /></label><label>Quantity<input type="number" placeholder={String([500, 150, 50, 80, 300][index])} /></label></div>)}
-      <label>Sales start<input className="picker-input" type="datetime-local" value={salesStart} onChange={(event) => setSalesStart(event.target.value)} /><PickerHelp kind="date" /></label>
-      <label>Sales end<input className="picker-input" type="datetime-local" value={salesEnd} onChange={(event) => setSalesEnd(event.target.value)} /><PickerHelp kind="date" /></label>
+      <PickerField label="Sales start" type="datetime-local" value={salesStart} onChange={setSalesStart} />
+      <PickerField label="Sales end" type="datetime-local" value={salesEnd} onChange={setSalesEnd} />
       <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
     </div>
   );
