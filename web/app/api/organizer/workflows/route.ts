@@ -4,13 +4,14 @@ import { requireSignedInUser } from '@/lib/authz';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const actionSchema = z.object({
-  action: z.enum(['ticket_type', 'campaign', 'task', 'staff_invite', 'volunteer_opportunity', 'vendor_request', 'foodo', 'triplink_route', 'sponsorship_package', 'budget', 'workspace', 'organization']),
+  action: z.enum(['ticket_type', 'campaign', 'task', 'staff_invite', 'volunteer_opportunity', 'vendor_request', 'foodo', 'triplink_route', 'sponsorship_package', 'budget', 'event_schedule', 'workspace', 'organization']),
   eventId: z.string().uuid().optional(),
   fields: z.record(z.string()).default({}),
 });
 
-const eventActions = new Set(['ticket_type', 'campaign', 'task', 'staff_invite', 'volunteer_opportunity', 'vendor_request', 'foodo', 'triplink_route', 'sponsorship_package', 'budget', 'workspace']);
+const eventActions = new Set(['ticket_type', 'campaign', 'task', 'staff_invite', 'volunteer_opportunity', 'vendor_request', 'foodo', 'triplink_route', 'sponsorship_package', 'budget', 'event_schedule', 'workspace']);
 const standardTicketTypes = new Set(['Regular', 'VIP', 'VVIP', 'Regular Group of 5', 'Gate Regular']);
+const scheduleTitles = new Set(['Gates open', 'Opening act', 'Headline performance', 'VIP check-in', 'After party', 'Main programme']);
 
 function text(fields: Record<string, string>, key: string, min = 1, max = 500) {
   const value = fields[key]?.trim() ?? '';
@@ -51,6 +52,17 @@ function ticketTypeRows(fields: Record<string, string>) {
   return rows;
 }
 
+function jsonRows(fields: Record<string, string>, key: string, fallback: Record<string, string>) {
+  if (!fields[key]) return [fallback];
+  const parsed = JSON.parse(fields[key]) as unknown;
+  if (!Array.isArray(parsed)) throw new Error(`Add valid ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}.`);
+  const rows = parsed
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map((item) => Object.fromEntries(Object.entries(item).map(([field, value]) => [field, String(value ?? '')])));
+  if (rows.length === 0) throw new Error(`Add at least one ${key.replace(/([A-Z])/g, ' $1').toLowerCase()} row.`);
+  return rows;
+}
+
 function optionalEmail(fields: Record<string, string>, key: string) {
   const value = fields[key]?.trim().toLowerCase();
   return value && z.string().email().safeParse(value).success ? value : null;
@@ -74,6 +86,12 @@ function optionalTimestamp(fields: Record<string, string>, key: string) {
   const value = fields[key];
   if (!value) return null;
   const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function dateTimeFromParts(row: Record<string, string>, dateKey: string, timeKey: string) {
+  if (!row[dateKey] || !row[timeKey]) return null;
+  const date = new Date(`${row[dateKey]}T${row[timeKey]}:00+03:00`);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -214,50 +232,102 @@ export async function POST(request: NextRequest) {
         }
         break;
       case 'campaign':
-        ({ error } = await auth.supabase.from('marketing_campaigns').insert({ event_id: eventId!, name: text(fields, 'name', 2, 120), channel: text(fields, 'channel', 2, 40), message: text(fields, 'message', 2, 1000), status: 'draft', starts_at: optionalTimestamp(fields, 'startsAt'), ends_at: optionalTimestamp(fields, 'endsAt'), created_by: auth.user.id }));
+        {
+          const rows = jsonRows(fields, 'campaigns', fields).map((row) => ({
+            event_id: eventId!,
+            name: text(row, 'name', 2, 120),
+            channel: text(row, 'channel', 2, 40),
+            message: text({ message: row.message || 'Campaign prepared from organizer workspace.' }, 'message', 2, 1000),
+            status: 'draft',
+            starts_at: optionalTimestamp(row, 'startsAt'),
+            ends_at: optionalTimestamp(row, 'endsAt'),
+            created_by: auth.user.id,
+          }));
+          ({ error } = await auth.supabase.from('marketing_campaigns').insert(rows));
+          message = `${rows.length} campaign${rows.length === 1 ? '' : 's'} saved.`;
+        }
         break;
       case 'task':
         {
-          let assignedTo: string | null = null;
-          const email = optionalEmail(fields, 'assignedEmail');
-          if (email) {
-            const user = await findAuthUserByEmail(email);
-            assignedTo = user?.id ?? null;
-            if (!user) message = 'Task saved. The assignee email is not a Tokea account yet, so it will appear unassigned until they sign up.';
+          const rows = [];
+          const taskRows = jsonRows(fields, 'tasks', fields);
+          let unassigned = 0;
+          for (const row of taskRows) {
+            let assignedTo: string | null = null;
+            const email = optionalEmail(row, 'assignedEmail');
+            if (email) {
+              const user = await findAuthUserByEmail(email);
+              assignedTo = user?.id ?? null;
+              if (!user) unassigned += 1;
+            }
+            rows.push({ event_id: eventId!, title: text(row, 'title', 2, 160), description: row.description?.trim() || null, assigned_to: assignedTo, priority: row.priority === 'critical' || row.priority === 'high' || row.priority === 'low' ? row.priority : 'medium', due_at: optionalTimestamp(row, 'dueAt'), created_by: auth.user.id });
           }
-          ({ error } = await auth.supabase.from('event_tasks').insert({ event_id: eventId!, title: text(fields, 'title', 2, 160), description: fields.description?.trim() || null, assigned_to: assignedTo, priority: fields.priority === 'critical' || fields.priority === 'high' || fields.priority === 'low' ? fields.priority : 'medium', due_at: fields.dueAt ? new Date(fields.dueAt).toISOString() : null, created_by: auth.user.id }));
+          ({ error } = await auth.supabase.from('event_tasks').insert(rows));
           await ensureWorkspace(eventId!, organizerId!, eventTitle);
+          message = `${rows.length} task${rows.length === 1 ? '' : 's'} created.${unassigned ? ` ${unassigned} assignee email${unassigned === 1 ? '' : 's'} did not have Tokea accounts yet.` : ''}`;
         }
         break;
       case 'staff_invite':
         {
-          const email = text(fields, 'email', 5, 254).toLowerCase();
-          const roleTitle = text(fields, 'roleTitle', 2, 120);
-          ({ error } = await auth.supabase.from('staff_invitations').upsert({ event_id: eventId!, organizer_id: organizerId!, email, role_title: roleTitle, department: normalizeDepartment(fields.department), created_by: auth.user.id }, { onConflict: 'event_id,email' }));
-          if (!error) {
-            const assignment = await assignStaffToEvent({ email, eventId: eventId!, organizerId: organizerId!, eventTitle, roleTitle, department: fields.department, startsAt: eventStartsAt, fields });
-            message = assignment.assigned ? 'Staff invited, assigned, and shift created.' : `Staff invitation saved. ${assignment.reason}`;
+          const rows = jsonRows(fields, 'staffInvites', fields);
+          let assignedCount = 0;
+          let pendingCount = 0;
+          for (const row of rows) {
+            const email = text(row, 'email', 5, 254).toLowerCase();
+            const roleTitle = text(row, 'roleTitle', 2, 120);
+            ({ error } = await auth.supabase.from('staff_invitations').upsert({ event_id: eventId!, organizer_id: organizerId!, email, role_title: roleTitle, department: normalizeDepartment(row.department), created_by: auth.user.id }, { onConflict: 'event_id,email' }));
+            if (error) break;
+            const assignment = await assignStaffToEvent({ email, eventId: eventId!, organizerId: organizerId!, eventTitle, roleTitle, department: row.department, startsAt: eventStartsAt, fields: row });
+            if (assignment.assigned) assignedCount += 1; else pendingCount += 1;
           }
+          message = `${rows.length} staff invitation${rows.length === 1 ? '' : 's'} saved. ${assignedCount} assigned now${pendingCount ? `, ${pendingCount} pending signup` : ''}.`;
         }
         break;
       case 'volunteer_opportunity':
         {
-          ({ error } = await auth.supabase.from('volunteer_opportunities').insert({ event_id: eventId!, title: text(fields, 'title', 2, 120), description: fields.description?.trim() || null, required_count: Number(text(fields, 'requiredCount', 1, 5)), created_by: auth.user.id }));
+          const rows = jsonRows(fields, 'volunteerOpportunities', fields);
+          let assignedCount = 0;
+          let pendingCount = 0;
+          const inserts = rows.map((row) => ({ event_id: eventId!, title: text(row, 'title', 2, 120), description: row.description?.trim() || null, required_count: Number(text(row, 'requiredCount', 1, 5)), created_by: auth.user.id }));
+          ({ error } = await auth.supabase.from('volunteer_opportunities').insert(inserts));
           if (!error) {
             await ensureWorkspace(eventId!, organizerId!, eventTitle);
-            const email = optionalEmail(fields, 'volunteerEmail');
+            for (const row of rows) {
+            const email = optionalEmail(row, 'volunteerEmail');
             if (email) {
-              const assignment = await assignVolunteerToEvent({ email, eventId: eventId!, organizerId: organizerId!, eventTitle, startsAt: eventStartsAt, fields });
-              message = assignment.assigned ? 'Volunteer opportunity published, volunteer assigned, and shift created.' : `Volunteer opportunity published. ${assignment.reason}`;
+              const assignment = await assignVolunteerToEvent({ email, eventId: eventId!, organizerId: organizerId!, eventTitle, startsAt: eventStartsAt, fields: row });
+              if (assignment.assigned) assignedCount += 1; else pendingCount += 1;
+            }
             }
           }
+          message = `${rows.length} volunteer opportunit${rows.length === 1 ? 'y' : 'ies'} published.${assignedCount || pendingCount ? ` ${assignedCount} assigned now${pendingCount ? `, ${pendingCount} pending signup` : ''}.` : ''}`;
         }
         break;
       case 'vendor_request':
-        ({ error } = await auth.supabase.from('vendor_requests').insert({ event_id: eventId!, service_category: text(fields, 'category', 2, 80), requirements: text(fields, 'requirements', 2, 1000), budget_cents: fields.budgetKes ? amount(fields, 'budgetKes') : null, requested_by: auth.user.id }));
+        {
+          const rows = jsonRows(fields, 'vendorRequests', fields).map((row) => ({ event_id: eventId!, service_category: text(row, 'category', 2, 80), requirements: text(row, 'requirements', 2, 1000), budget_cents: row.budgetKes ? amount(row, 'budgetKes') : null, requested_by: auth.user.id }));
+          ({ error } = await auth.supabase.from('vendor_requests').insert(rows));
+          message = `${rows.length} vendor request${rows.length === 1 ? '' : 's'} published.`;
+        }
         break;
       case 'foodo':
-        ({ error } = await auth.supabase.from('event_feature_settings').upsert({ event_id: eventId!, foodo_active: true }));
+        {
+          await auth.supabase.from('event_feature_settings').upsert({ event_id: eventId!, foodo_active: true });
+          const rows = jsonRows(fields, 'foodoVendors', { vendorName: fields.foodoBrief || 'Foodo vendor', cuisineType: fields.foodoBrief || 'Street food', vendorFeeKes: fields.vendorFeeKes || '0', requirements: fields.requirements || 'Foodo vendor setup', stallNumber: 'A1', menuSummary: fields.foodoBrief || 'Menu to be confirmed' });
+          let created = 0;
+          const admin = createSupabaseAdminClient();
+          for (const row of rows) {
+            const { data: vendor, error: vendorError } = await admin.from('food_vendors').insert({ vendor_name: text(row, 'vendorName', 2, 120), cuisine_type: row.cuisineType || null, menu_summary: row.menuSummary || null }).select('id').single();
+            if (vendorError || !vendor) throw vendorError ?? new Error('Unable to create Foodo vendor.');
+            const stallNumber = text({ stallNumber: row.stallNumber || `F${created + 1}` }, 'stallNumber', 1, 40);
+            const { data: stall, error: stallError } = await admin.from('food_stalls').upsert({ event_id: eventId!, stall_number: stallNumber, food_vendor_id: vendor.id, location: row.location || null }, { onConflict: 'event_id,stall_number' }).select('id').single();
+            if (stallError || !stall) throw stallError ?? new Error('Unable to create Foodo stall.');
+            const { error: applicationError } = await admin.from('food_vendor_applications').upsert({ event_id: eventId!, food_vendor_id: vendor.id, status: 'submitted', requirements: row.requirements || null, assigned_stall_id: stall.id, assigned_category: row.cuisineType || null, vendor_fee_cents: row.vendorFeeKes ? amount(row, 'vendorFeeKes') : 0 }, { onConflict: 'event_id,food_vendor_id' });
+            if (applicationError) throw applicationError;
+            created += 1;
+          }
+          message = `Foodo activated and ${created} food vendor${created === 1 ? '' : 's'} added.`;
+        }
         break;
       case 'triplink_route': {
         const { data: providers, error: providerError } = await auth.supabase.from('transport_providers').select('id').eq('profile_id', auth.user.id).limit(1);
@@ -269,18 +339,43 @@ export async function POST(request: NextRequest) {
           providerId = provider.id;
         }
         await auth.supabase.from('event_feature_settings').upsert({ event_id: eventId!, triplink_active: true });
-        const schedules = [
-          optionalTimestamp(fields, 'departureAt') ? { label: 'First departure', departs_at: optionalTimestamp(fields, 'departureAt') } : null,
-          optionalTimestamp(fields, 'returnAt') ? { label: 'Return departure', departs_at: optionalTimestamp(fields, 'returnAt') } : null,
-        ].filter(Boolean);
-        ({ error } = await auth.supabase.from('transport_routes').insert({ event_id: eventId!, transport_provider_id: providerId, route_name: text(fields, 'routeName', 2, 120), pickup_points: text(fields, 'pickupPoints', 2, 500).split(',').map((point) => point.trim()).filter(Boolean), dropoff_points: [text(fields, 'dropoffPoint', 2, 160)], schedules, price_cents: amount(fields, 'priceKes'), capacity: Number(text(fields, 'capacity', 1, 6)) }));
+        const rows = jsonRows(fields, 'triplinkRoutes', fields).map((row) => {
+          const schedules = [
+            optionalTimestamp(row, 'departureAt') ? { label: 'First departure', departs_at: optionalTimestamp(row, 'departureAt') } : null,
+            optionalTimestamp(row, 'returnAt') ? { label: 'Return departure', departs_at: optionalTimestamp(row, 'returnAt') } : null,
+          ].filter(Boolean);
+          return { event_id: eventId!, transport_provider_id: providerId, route_name: text(row, 'routeName', 2, 120), pickup_points: text(row, 'pickupPoints', 2, 500).split(',').map((point) => point.trim()).filter(Boolean), dropoff_points: [text(row, 'dropoffPoint', 2, 160)], schedules, price_cents: amount(row, 'priceKes'), capacity: Number(text(row, 'capacity', 1, 6)) };
+        });
+        ({ error } = await auth.supabase.from('transport_routes').insert(rows));
+        message = `${rows.length} Triplink route${rows.length === 1 ? '' : 's'} created.`;
         break;
       }
       case 'sponsorship_package':
-        ({ error } = await auth.supabase.from('sponsorship_packages').insert({ event_id: eventId!, name: text(fields, 'name', 2, 100), price_cents: amount(fields, 'priceKes'), benefits: text(fields, 'benefits', 2, 1000).split('\n').map((item) => item.trim()).filter(Boolean), inventory_count: Number(text(fields, 'inventory', 1, 5)), created_by: auth.user.id }));
+        {
+          const rows = jsonRows(fields, 'sponsorshipPackages', fields).map((row) => ({ event_id: eventId!, name: text(row, 'name', 2, 100), price_cents: amount(row, 'priceKes'), benefits: text(row, 'benefits', 2, 1000).split('\n').map((item) => item.trim()).filter(Boolean), inventory_count: Number(text(row, 'inventory', 1, 5)), created_by: auth.user.id }));
+          ({ error } = await auth.supabase.from('sponsorship_packages').insert(rows));
+          message = `${rows.length} sponsorship package${rows.length === 1 ? '' : 's'} saved.`;
+        }
         break;
       case 'budget':
-        ({ error } = await auth.supabase.from('event_budgets').upsert({ event_id: eventId!, category: text(fields, 'category', 2, 80), budgeted_cents: amount(fields, 'budgetKes'), notes: fields.notes?.trim() || null }, { onConflict: 'event_id,category' }));
+        {
+          const rows = jsonRows(fields, 'budgets', fields).map((row) => ({ event_id: eventId!, category: text(row, 'category', 2, 80), budgeted_cents: amount(row, 'budgetKes'), notes: row.notes?.trim() || null }));
+          ({ error } = await auth.supabase.from('event_budgets').upsert(rows, { onConflict: 'event_id,category' }));
+          message = `${rows.length} budget line${rows.length === 1 ? '' : 's'} saved.`;
+        }
+        break;
+      case 'event_schedule':
+        {
+          const rows = jsonRows(fields, 'scheduleItems', fields).map((row) => {
+            const startsAt = dateTimeFromParts(row, 'scheduleDate', 'startTime');
+            if (!startsAt) throw new Error('Choose a valid schedule date and start time.');
+            const title = text(row, 'title', 2, 120);
+            if (row.title && !scheduleTitles.has(row.title) && row.title.length < 2) throw new Error('Choose a valid schedule title.');
+            return { event_id: eventId!, title, description: row.description?.trim() || null, starts_at: startsAt, ends_at: dateTimeFromParts(row, 'scheduleDate', 'endTime'), location_label: row.locationLabel?.trim() || null, schedule_type: 'program' };
+          });
+          ({ error } = await auth.supabase.from('event_schedules').insert(rows));
+          message = `${rows.length} schedule item${rows.length === 1 ? '' : 's'} saved.`;
+        }
         break;
       case 'workspace': {
         const { data: workspace, error: workspaceError } = await auth.supabase.from('event_workspaces').upsert({ event_id: eventId!, organizer_id: organizerId!, name: `${text(fields, 'workspaceName', 2, 120)} Workspace` }, { onConflict: 'event_id' }).select('id').single();

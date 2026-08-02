@@ -1812,6 +1812,11 @@ button {
 .ticket-bulk-card { background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 9px; display: grid; gap: 10px; padding: 12px; }
 .ticket-bulk-card strong { color: var(--text); font-size: 13px; }
 .ticket-bulk-card label { color: var(--muted); display: grid; font-size: 12px; font-weight: 800; gap: 7px; }
+.multi-record-card { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.multi-record-card .wide { grid-column: 1 / -1; }
+.multi-record-head { align-items: center; display: flex; grid-column: 1 / -1; justify-content: space-between; gap: 10px; }
+.multi-record-head button { background: rgba(255,45,122,.09); border: 1px solid rgba(255,45,122,.28); border-radius: 7px; color: var(--pink); cursor: pointer; font-size: 11px; font-weight: 850; min-height: 30px; padding: 0 9px; }
+.multi-record-head button:disabled { cursor: not-allowed; opacity: .45; }
 
 .media-upload-form input[type="file"] { align-items: center; cursor: pointer; display: flex; padding: 10px 11px; }
 .media-preview { align-items: flex-end; aspect-ratio: 16 / 7; background-color: rgba(0,0,0,.45); background-position: center; background-repeat: no-repeat; background-size: contain; border: 1px solid var(--line-strong); border-radius: 10px; display: flex; min-height: 220px; overflow: hidden; padding: 14px; position: relative; }

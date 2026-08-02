@@ -140,6 +140,17 @@ const workflowActions: Record<string, OrganizerAction> = {
   documents: 'task',
   settings: 'organization',
 };
+const wizardWorkflowActions: Partial<Record<number, OrganizerAction>> = {
+  3: 'event_schedule',
+  4: 'ticket_type',
+  5: 'foodo',
+  6: 'triplink_route',
+  7: 'staff_invite',
+  8: 'volunteer_opportunity',
+  9: 'sponsorship_package',
+  10: 'budget',
+  11: 'campaign',
+};
 
 export function OrganizerWorkspace({ module }: { module: string }) {
   if (module === 'create') return <CreateEventWizard />;
@@ -215,6 +226,7 @@ function CreateEventWizard() {
   const [uploading, setUploading] = useState(false);
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState('');
+  const [activeAction, setActiveAction] = useState<OrganizerAction | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<{ file: File; previewUrl: string }[]>([]);
   const [form, setForm] = useState({
     title: '',
@@ -374,6 +386,12 @@ function CreateEventWizard() {
     }
   }
 
+  async function openFullSetup(action: OrganizerAction) {
+    const eventId = draftId ?? await saveDraft();
+    if (!eventId) return;
+    setActiveAction(action);
+  }
+
   return (
     <div className="organizer-workspace">
       <header className="organizer-header">
@@ -464,6 +482,7 @@ function CreateEventWizard() {
             <div className="wizard-actions">
               <button className="button secondary" type="button" disabled={step === 0} onClick={() => setStep((current) => current - 1)}>Back</button>
               <div className="wizard-action-group">
+                {wizardWorkflowActions[step] && <button className="button secondary" type="button" onClick={() => void openFullSetup(wizardWorkflowActions[step]!)}>Open full setup</button>}
                 {step >= 5 && step < wizardSteps.length - 1 && <button className="button secondary" type="button" onClick={() => setStep(wizardSteps.length - 1)}>Skip add-ons</button>}
                 <button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>
                   {step === wizardSteps.length - 1 ? 'Publish when ready' : step >= 5 ? 'Save optional step' : 'Continue'} <ArrowRight size={16} />
@@ -473,6 +492,7 @@ function CreateEventWizard() {
           </div>
         </div>
       </section>
+      {activeAction && <OrganizerActionForm action={activeAction} initialEventId={draftId ?? undefined} onClose={() => setActiveAction(null)} />}
     </div>
   );
 }
