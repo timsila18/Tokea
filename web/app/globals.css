@@ -73,6 +73,31 @@ button {
   padding: 0 25px 30px;
 }
 
+.sidebar-top-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.sidebar-logout-top {
+  align-items: center;
+  background: rgba(255, 45, 122, 0.09);
+  border: 1px solid rgba(255, 45, 122, 0.28);
+  border-radius: 9px;
+  color: var(--pink);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 850;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.sidebar-logout-top:hover {
+  background: rgba(255, 45, 122, 0.14);
+  border-color: rgba(255, 45, 122, 0.45);
+}
+
 .brand {
   color: var(--gold);
   display: block;

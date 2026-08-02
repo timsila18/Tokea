@@ -80,9 +80,17 @@ export function RoleAwareSidebar() {
           <Link href="/" className="brand">Tokea</Link>
           <div className="tagline">Don&apos;t Hear About It. Tokea.</div>
         </div>
-        <button className="icon-button ghost" aria-label="Collapse navigation" type="button">
-          <Menu size={19} />
-        </button>
+        <div className="sidebar-top-actions">
+          {email && (
+            <button className="sidebar-logout-top" type="button" onClick={logout}>
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          )}
+          <button className="icon-button ghost" aria-label="Collapse navigation" type="button">
+            <Menu size={19} />
+          </button>
+        </div>
       </div>
       <nav className="nav" aria-label="Main navigation">
         {visibleNav.map(({ label, href, icon: Icon }) => (
@@ -99,15 +107,7 @@ export function RoleAwareSidebar() {
           <span>{email ? roleLabels[role] : 'Not signed in'}</span>
         </div>
       </Link>
-      {email ? (
-        <div className="auth-controls signed-in">
-          <span>{email}</span>
-          <button type="button" onClick={logout}>
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      ) : (
+      {!email && (
         <div className="auth-controls">
           <Link href="/login">
             <LogIn size={16} />
