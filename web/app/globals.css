@@ -1837,6 +1837,12 @@ button {
 .suggested-options-panel { background: linear-gradient(135deg, rgba(212,175,55,.12), rgba(255,45,122,.055)); border: 1px solid rgba(212,175,55,.24); border-radius: 10px; display: grid; gap: 5px; padding: 12px; }
 .suggested-options-panel strong { color: var(--gold); font-size: 12px; text-transform: uppercase; }
 .suggested-options-panel span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.marketing-channel-guide { background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 12px; padding: 13px; }
+.marketing-channel-guide > strong { color: var(--gold); font-size: 12px; text-transform: uppercase; }
+.marketing-channel-guide > div { display: grid; gap: 8px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.marketing-channel-guide article { background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 4px; padding: 10px; }
+.marketing-channel-guide b { color: var(--text); font-size: 12px; }
+.marketing-channel-guide span { color: var(--muted); font-size: 12px; line-height: 1.4; }
 .picker-help { color: var(--gold); font-size: 11px; font-weight: 750; line-height: 1.35; }
 .picker-input { color-scheme: dark; cursor: pointer; padding-right: 44px !important; }
 .picker-input::-webkit-calendar-picker-indicator { background-color: rgba(212,175,55,.9); border-radius: 6px; cursor: pointer; filter: invert(0); height: 18px; opacity: 1; padding: 5px; width: 18px; }
@@ -2050,6 +2056,7 @@ button {
   .wizard-layout nav { border-bottom: 1px solid var(--line); border-right: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wizard-form { grid-template-columns: 1fr; }
   .wizard-form .wide { grid-column: auto; }
+  .marketing-channel-guide > div { grid-template-columns: 1fr; }
   .workflow-grid { grid-template-columns: 1fr; }
   .workflow-grid .wide { grid-column: auto; }
   .attendee-home { padding: 22px 14px 32px; }

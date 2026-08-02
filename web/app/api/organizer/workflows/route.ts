@@ -63,6 +63,17 @@ function jsonRows(fields: Record<string, string>, key: string, fallback: Record<
   return rows;
 }
 
+function campaignMessage(row: Record<string, string>) {
+  return [
+    row.message || 'Campaign prepared from organizer workspace.',
+    row.objective ? `Objective: ${row.objective}` : '',
+    row.contentFormat ? `Format: ${row.contentFormat}` : '',
+    row.cta ? `CTA: ${row.cta}` : '',
+    row.destinationUrl ? `Link: ${row.destinationUrl}` : '',
+    row.trackingCode ? `Tracking: ${row.trackingCode}` : '',
+  ].filter(Boolean).join('\n');
+}
+
 function optionalEmail(fields: Record<string, string>, key: string) {
   const value = fields[key]?.trim().toLowerCase();
   return value && z.string().email().safeParse(value).success ? value : null;
@@ -237,7 +248,7 @@ export async function POST(request: NextRequest) {
             event_id: eventId!,
             name: text(row, 'name', 2, 120),
             channel: text(row, 'channel', 2, 40),
-            message: text({ message: row.message || 'Campaign prepared from organizer workspace.' }, 'message', 2, 1000),
+            message: text({ message: campaignMessage(row) }, 'message', 2, 1000),
             status: 'draft',
             starts_at: optionalTimestamp(row, 'startsAt'),
             ends_at: optionalTimestamp(row, 'endsAt'),

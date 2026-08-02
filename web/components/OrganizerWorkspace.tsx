@@ -13,6 +13,7 @@ type Module = {
   metrics: [string, string][];
   rows: [string, string, string][];
 };
+type ActiveOrganizerAction = { action: OrganizerAction; initialFields?: Record<string, string> };
 
 const modules: Record<string, Module> = {
   events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
@@ -115,10 +116,14 @@ const wizardSuggestions: Record<number, WizardStepConfig> = {
     ],
   },
   11: {
-    guidance: 'Pick a marketing channel and schedule the campaign window.',
+    guidance: 'Create one or more campaign pushes: awareness first, conversion second, and final reminders before event day.',
     fields: [
       { name: 'campaignName', label: 'Campaign name', type: 'select', options: ['Launch campaign', 'Early bird push', 'Final week sales', 'VIP table push', 'Influencer reel burst'], defaultValue: 'Launch campaign' },
       { name: 'primaryChannel', label: 'Primary channel', type: 'select', options: ['Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'X', 'Telegram', 'Radio', 'Campus ambassadors'], defaultValue: 'Instagram' },
+      { name: 'campaignObjective', label: 'Objective', type: 'select', options: ['Awareness', 'Interested saves', 'Ticket conversion', 'VIP upsell', 'Community growth', 'Last-call urgency'], defaultValue: 'Awareness' },
+      { name: 'campaignFormat', label: 'Content format', type: 'select', options: ['Poster carousel + reel', 'Short-form video', 'Broadcast copy + short link', 'Story countdown', 'Creator brief', 'Radio mention'], defaultValue: 'Poster carousel + reel' },
+      { name: 'campaignCta', label: 'Call to action', type: 'select', options: ['Save event', 'Buy ticket', 'Share with friends', 'Join community', 'Book VIP', 'Use creator code'], defaultValue: 'Save event' },
+      { name: 'trackingCode', label: 'Tracking code', type: 'text', placeholder: 'IG-LAUNCH' },
       { name: 'campaignStart', label: 'Campaign start', type: 'datetime-local' },
       { name: 'campaignEnd', label: 'Campaign end', type: 'datetime-local' },
     ],
@@ -152,12 +157,23 @@ const wizardWorkflowActions: Partial<Record<number, OrganizerAction>> = {
   11: 'campaign',
 };
 
+const marketingChannelUses = [
+  ['Instagram', 'Premium posters, carousels, Stories, countdowns, and Reels for visual hype and saves.'],
+  ['TikTok', 'Short event trailers, creator clips, venue previews, and trend-led discovery for younger audiences.'],
+  ['WhatsApp', 'Conversion-focused broadcast copy, share links, group reminders, and last-call ticket pushes.'],
+  ['Facebook', 'Event listings, community groups, retargeting audiences, and longer organizer updates.'],
+  ['X', 'Fast announcements, lineup reveals, public conversation, and live event-day updates.'],
+  ['Telegram', 'Community drops, deal alerts, and broadcast-style updates for loyal event communities.'],
+  ['Radio', 'Mass awareness and credibility for citywide events, festivals, gospel, comedy, and concerts.'],
+  ['Campus ambassadors', 'Creator codes and field promotion for student-heavy events and youth culture.'],
+];
+
 export function OrganizerWorkspace({ module }: { module: string }) {
   if (module === 'create') return <CreateEventWizard />;
 
   const config = modules[module] ?? modules.events;
   const [filter, setFilter] = useState('All');
-  const [activeAction, setActiveAction] = useState<OrganizerAction | null>(null);
+  const [activeAction, setActiveAction] = useState<ActiveOrganizerAction | null>(null);
   const rows = useMemo(() => (filter === 'All' ? config.rows : config.rows.filter((row) => row[2].toLowerCase().includes(filter.toLowerCase()))), [config.rows, filter]);
 
   function exportReport() {
@@ -172,12 +188,29 @@ export function OrganizerWorkspace({ module }: { module: string }) {
 
   const action = workflowActions[module];
 
-  function openRowAction() {
+  function campaignFieldsForRow(row: [string, string, string]) {
+    const [name] = row;
+    if (name.toLowerCase().includes('whatsapp')) {
+      return {
+        campaigns: JSON.stringify([{ name: 'Final week sales', channel: 'WhatsApp', objective: 'Ticket conversion', contentFormat: 'Broadcast copy + short link', cta: 'Buy ticket', destinationUrl: 'https://tokeaevents.co.ke/events/your-event', trackingCode: 'WA-FINAL', startsAt: '', endsAt: '', message: 'Send a concise WhatsApp reminder with price, date, venue, urgency, and the Tokea ticket link.' }]),
+      };
+    }
+    if (name.toLowerCase().includes('creator') || name.toLowerCase().includes('campus')) {
+      return {
+        campaigns: JSON.stringify([{ name: 'Campus creator code', channel: 'Campus ambassadors', objective: 'Ticket conversion', contentFormat: 'Creator brief', cta: 'Use creator code', destinationUrl: 'https://tokeaevents.co.ke/events/your-event', trackingCode: 'CAMPUS-CODE', startsAt: '', endsAt: '', message: 'Assign creator codes, campus posters, and story templates so sales can be traced per ambassador.' }]),
+      };
+    }
+    return {
+      campaigns: JSON.stringify([{ name: 'Influencer reel burst', channel: 'Instagram', objective: 'Awareness', contentFormat: 'Short-form video', cta: 'Save event', destinationUrl: 'https://tokeaevents.co.ke/events/your-event', trackingCode: 'IG-REEL', startsAt: '', endsAt: '', message: 'Post a punchy Reel using the poster, venue shots, artist clips, ticket price, and event link.' }]),
+    };
+  }
+
+  function openRowAction(row: [string, string, string]) {
     if (module === 'analytics') {
       exportReport();
       return;
     }
-    if (action) setActiveAction(action);
+    if (action) setActiveAction({ action, initialFields: module === 'marketing' ? campaignFieldsForRow(row) : undefined });
   }
 
   return (
@@ -193,7 +226,7 @@ export function OrganizerWorkspace({ module }: { module: string }) {
         ) : module === 'analytics' ? (
           <button className="button" type="button" onClick={exportReport}><Download size={16} />{config.action}</button>
         ) : (
-          <button className="button" type="button" onClick={() => setActiveAction(action)}><Plus size={16} />{config.action}</button>
+          <button className="button" type="button" onClick={() => setActiveAction({ action })}><Plus size={16} />{config.action}</button>
         )}
       </header>
       <div className="workspace-metrics">
@@ -220,7 +253,7 @@ export function OrganizerWorkspace({ module }: { module: string }) {
                       <ArrowRight size={16} />
                     </Link>
                   ) : (
-                    <button className="row-action-button" type="button" onClick={openRowAction} aria-label={`Open ${config.action} for ${row[0]}`} title={`Open ${config.action} for ${row[0]}`}>
+                    <button className="row-action-button" type="button" onClick={() => openRowAction(row)} aria-label={`Open ${config.action} for ${row[0]}`} title={`Open ${config.action} for ${row[0]}`}>
                       <ArrowRight size={16} />
                     </button>
                   )}
@@ -230,7 +263,7 @@ export function OrganizerWorkspace({ module }: { module: string }) {
           </tbody>
         </table>
       </section>
-      {activeAction && <OrganizerActionForm action={activeAction} onClose={() => setActiveAction(null)} />}
+      {activeAction && <OrganizerActionForm action={activeAction.action} initialFields={activeAction.initialFields} onClose={() => setActiveAction(null)} />}
     </div>
   );
 }
@@ -525,9 +558,26 @@ function WizardStageFields({ step }: { step: number }) {
         <strong>Recommended picks</strong>
         <span>{config.guidance}</span>
       </div>
+      {step === 11 && <MarketingChannelGuide />}
       {config.fields.map((field) => (
         <SuggestedField key={field.name} field={field} />
       ))}
+    </div>
+  );
+}
+
+function MarketingChannelGuide() {
+  return (
+    <div className="wide marketing-channel-guide">
+      <strong>How Tokea uses the channels</strong>
+      <div>
+        {marketingChannelUses.map(([channel, use]) => (
+          <article key={channel}>
+            <b>{channel}</b>
+            <span>{use}</span>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
