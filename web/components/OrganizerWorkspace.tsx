@@ -2,55 +2,129 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowRight, Check, Copy, Download, Plus, Save, Share2 } from 'lucide-react';
+import { ArrowRight, Check, Download, ImagePlus, Plus, Save, Upload } from 'lucide-react';
 import { OrganizerActionForm, type OrganizerAction } from '@/components/OrganizerActionForm';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
-type Module = { title: string; description: string; action: string; metrics: [string, string][]; rows: [string, string, string][] };
+type Module = {
+  title: string;
+  description: string;
+  action: string;
+  metrics: [string, string][];
+  rows: [string, string, string][];
+};
 
 const modules: Record<string, Module> = {
-  events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 · KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 · Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 · Sarit', '61% ready']] },
-  ticketing: { title: 'Ticketing', description: 'Manage ticket types, promo codes, affiliates, sales, refunds, transfers, and check-ins.', action: 'Create ticket type', metrics: [['Sold today', '64'], ['Sales this week', '286'], ['Conversion', '4.8%']], rows: [['Early Bird', '1,040 sold · KES 2,500', 'Active'], ['VIP', '205 sold · KES 6,500', 'Selling fast'], ['Regular', '0 sold · KES 3,500', 'Scheduled']] },
-  marketing: { title: 'Marketing Center', description: 'Create campaigns, announcements, reels, social posts, and share-ready event links.', action: 'Create campaign', metrics: [['Reach', '86.4K'], ['Interested', '1,862'], ['Promo conversions', '198']], rows: [['Instagram reel', '24.8K views · 1.9K likes', 'Top performing'], ['WhatsApp launch', '4.2% conversion', 'Active'], ['Campus creator code', '54 ticket sales', 'Active']] },
+  events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
+  ticketing: { title: 'Ticketing', description: 'Manage ticket types, promo codes, affiliates, sales, refunds, transfers, and check-ins.', action: 'Create ticket type', metrics: [['Sold today', '64'], ['Sales this week', '286'], ['Conversion', '4.8%']], rows: [['Early Bird', '1,040 sold - KES 2,500', 'Active'], ['VIP', '205 sold - KES 6,500', 'Selling fast'], ['Regular', '0 sold - KES 3,500', 'Scheduled']] },
+  marketing: { title: 'Marketing Center', description: 'Create campaigns, announcements, reels, social posts, and share-ready event links.', action: 'Create campaign', metrics: [['Reach', '86.4K'], ['Interested', '1,862'], ['Promo conversions', '198']], rows: [['Instagram reel', '24.8K views - 1.9K likes', 'Top performing'], ['WhatsApp launch', '4.2% conversion', 'Active'], ['Campus creator code', '54 ticket sales', 'Active']] },
   operations: { title: 'Operations Center', description: 'Assign work, control approvals, track deadlines, logistics, incidents, and event readiness.', action: 'Create task', metrics: [['Tasks complete', '38 / 52'], ['Overdue', '4'], ['Approvals', '7']], rows: [['Security coverage', 'Owner: Operations lead', 'Blocked'], ['Gate scanner test', 'Owner: Ticketing lead', 'Due 12 Jul'], ['Vendor confirmation', 'Owner: Vendor lead', 'In progress']] },
   staff: { title: 'Staff Management', description: 'Define roles, invite staff, assign shifts, track attendance, and connect the workforce foundation.', action: 'Invite staff', metrics: [['Required', '24'], ['Assigned', '18'], ['Shift coverage', '75%']], rows: [['Security', '6 / 8 assigned', 'Needs action'], ['Gate scanners', '4 / 4 assigned', 'Covered'], ['VIP hosts', '2 / 4 assigned', 'Needs action']] },
   volunteers: { title: 'Volunteer Management', description: 'Review applications, assign tasks, track service hours, and issue certificates.', action: 'Create opportunity', metrics: [['Applications', '31'], ['Approved', '12'], ['Hours planned', '246']], rows: [['Guest experience', '8 approved', 'Open'], ['Community support', '3 approved', 'Open'], ['Green team', '1 approved', 'Needs action']] },
   vendors: { title: 'Vendor Management', description: 'Source service vendors, request quotes, approve contracts, and track vendor deliverables.', action: 'Find vendors', metrics: [['Applications', '8'], ['Awaiting review', '3'], ['Confirmed', '5']], rows: [['Stage and sound', 'Quote received', 'Review'], ['Security provider', 'Contract pending', 'Action needed'], ['Photo and video', 'Confirmed', 'Ready']] },
-  foodo: { title: 'Foodo Management', description: 'Approve food vendors, allocate stalls, review menus, and monitor food pre-orders and redemptions.', action: 'Activate Foodo', metrics: [['Approved vendors', '6'], ['Pending menus', '2'], ['Pre-orders', '184']], rows: [['Urban Bites', 'Stall A12 · Menu approved', 'Ready'], ['Mama Njeri Kitchen', 'Compliance pending', 'Review'], ['Wok House', 'Stall B02 · 64 pre-orders', 'Ready']] },
+  foodo: { title: 'Foodo Management', description: 'Approve food vendors, allocate stalls, review menus, and monitor food pre-orders and redemptions.', action: 'Activate Foodo', metrics: [['Approved vendors', '6'], ['Pending menus', '2'], ['Pre-orders', '184']], rows: [['Urban Bites', 'Stall A12 - Menu approved', 'Ready'], ['Mama Njeri Kitchen', 'Compliance pending', 'Review'], ['Wok House', 'Stall B02 - 64 pre-orders', 'Ready']] },
   triplink: { title: 'Triplink Management', description: 'Configure routes, pickup points, vehicles, manifests, boarding, and transport revenue.', action: 'Create route', metrics: [['Routes', '0'], ['Pickup points', '0'], ['Seats booked', '0']], rows: [['CBD express', 'Not configured', 'Action needed'], ['Thika Road', 'Not configured', 'Action needed'], ['Westlands', 'Not configured', 'Action needed']] },
-  sponsors: { title: 'Sponsor Management', description: 'Build packages, send proposals, approve sponsors, and deliver every commercial commitment.', action: 'Create package', metrics: [['Secured', '2'], ['Proposals open', '4'], ['Sponsor revenue', 'KES 180K']], rows: [['Main stage partner', 'KES 120,000 · Signed', 'Ready'], ['Beverage partner', 'KES 60,000 · Signed', 'Ready'], ['Connectivity partner', 'Proposal sent', 'Follow up']] },
+  sponsors: { title: 'Sponsor Management', description: 'Build packages, send proposals, approve sponsors, and deliver every commercial commitment.', action: 'Create package', metrics: [['Secured', '2'], ['Proposals open', '4'], ['Sponsor revenue', 'KES 180K']], rows: [['Main stage partner', 'KES 120,000 - Signed', 'Ready'], ['Beverage partner', 'KES 60,000 - Signed', 'Ready'], ['Connectivity partner', 'Proposal sent', 'Follow up']] },
   finance: { title: 'Finance', description: 'Track revenue, expenses, budgets, fees, settlements, payouts, and event profit.', action: 'Create budget line', metrics: [['Gross revenue', 'KES 642K'], ['Expenses', 'KES 358K'], ['Projected profit', 'KES 284K']], rows: [['Venue deposit', 'KES 120,000', 'Paid'], ['Production', 'KES 88,000', 'On budget'], ['Marketing', 'KES 65,000', 'Under budget']] },
   analytics: { title: 'Analytics', description: 'Understand sales trends, audience growth, conversion, community activity, and partner performance.', action: 'Export report', metrics: [['Sales velocity', '+18.7%'], ['New followers', '842'], ['Community posts', '128']], rows: [['Instagram', '42% of event traffic', 'Top source'], ['WhatsApp', '26% of event traffic', 'High conversion'], ['Affiliate codes', '18% of ticket sales', 'Growing']] },
-  solco: { title: 'Solco Workspace', description: 'Coordinate the event team through channels, announcements, meetings, files, and pinned decisions.', action: 'Open workspace', metrics: [['Channels', '9'], ['Unread messages', '14'], ['Meetings this week', '3']], rows: [['# operations', '4 unread · Gate plan updated', 'Active'], ['# announcements', '2 scheduled updates', 'Active'], ['# emergency', 'Safety briefing pinned', 'Ready']] },
-  documents: { title: 'Documents', description: 'Store permits, contracts, invoices, emergency plans, insurance, and partner agreements.', action: 'Upload document', metrics: [['Stored', '18'], ['Awaiting upload', '4'], ['Expiring soon', '1']], rows: [['Venue agreement', 'PDF · KICC', 'Verified'], ['Emergency plan', 'Missing', 'Action needed'], ['Insurance certificate', 'Expires 16 Jul 2026', 'Review']] },
-  settings: { title: 'Organization Settings', description: 'Manage the organization profile, team permissions, payout details, verification, notifications, and security.', action: 'Edit organization', metrics: [['Team members', '8'], ['Verified', 'Pending'], ['Security checks', '6 / 7']], rows: [['Organization profile', 'Tokea Events Kenya', 'Complete'], ['Payout account', 'Equity Bank ·•••• 4231', 'Verified'], ['Two-step verification', 'Not enabled', 'Action needed']] },
+  solco: { title: 'Solco Workspace', description: 'Coordinate the event team through channels, announcements, meetings, files, and pinned decisions.', action: 'Open workspace', metrics: [['Channels', '9'], ['Unread messages', '14'], ['Meetings this week', '3']], rows: [['# operations', '4 unread - Gate plan updated', 'Active'], ['# announcements', '2 scheduled updates', 'Active'], ['# emergency', 'Safety briefing pinned', 'Ready']] },
+  documents: { title: 'Documents', description: 'Store permits, contracts, invoices, emergency plans, insurance, and partner agreements.', action: 'Upload document', metrics: [['Stored', '18'], ['Awaiting upload', '4'], ['Expiring soon', '1']], rows: [['Venue agreement', 'PDF - KICC', 'Verified'], ['Emergency plan', 'Missing', 'Action needed'], ['Insurance certificate', 'Expires 16 Jul 2026', 'Review']] },
+  settings: { title: 'Organization Settings', description: 'Manage the organization profile, team permissions, payout details, verification, notifications, and security.', action: 'Edit organization', metrics: [['Team members', '8'], ['Verified', 'Pending'], ['Security checks', '6 / 7']], rows: [['Organization profile', 'Tokea Events Kenya', 'Complete'], ['Payout account', 'Equity Bank - **** 4231', 'Verified'], ['Two-step verification', 'Not enabled', 'Action needed']] },
 };
 
 const wizardSteps = ['Basic details', 'Venue', 'Media', 'Schedule', 'Tickets', 'Foodo', 'Triplink', 'Staff', 'Volunteers', 'Sponsors', 'Budget', 'Marketing', 'Preview'];
 
 const workflowActions: Record<string, OrganizerAction> = {
-  ticketing: 'ticket_type', marketing: 'campaign', operations: 'task', staff: 'staff_invite', volunteers: 'volunteer_opportunity', vendors: 'vendor_request', foodo: 'foodo', triplink: 'triplink_route', sponsors: 'sponsorship_package', finance: 'budget', solco: 'workspace', documents: 'task', settings: 'organization',
+  ticketing: 'ticket_type',
+  marketing: 'campaign',
+  operations: 'task',
+  staff: 'staff_invite',
+  volunteers: 'volunteer_opportunity',
+  vendors: 'vendor_request',
+  foodo: 'foodo',
+  triplink: 'triplink_route',
+  sponsors: 'sponsorship_package',
+  finance: 'budget',
+  solco: 'workspace',
+  documents: 'task',
+  settings: 'organization',
 };
 
 export function OrganizerWorkspace({ module }: { module: string }) {
   if (module === 'create') return <CreateEventWizard />;
+
   const config = modules[module] ?? modules.events;
   const [filter, setFilter] = useState('All');
   const [activeAction, setActiveAction] = useState<OrganizerAction | null>(null);
-  const rows = useMemo(() => filter === 'All' ? config.rows : config.rows.filter((row) => row[2].toLowerCase().includes(filter.toLowerCase())), [config.rows, filter]);
+  const rows = useMemo(() => (filter === 'All' ? config.rows : config.rows.filter((row) => row[2].toLowerCase().includes(filter.toLowerCase()))), [config.rows, filter]);
+
   function exportReport() {
     const report = ['Metric,Value', ...config.metrics.map(([label, value]) => `${label},${value}`)].join('\n');
     const url = URL.createObjectURL(new Blob([report], { type: 'text/csv' }));
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'tokea-organizer-analytics.csv'; anchor.click(); URL.revokeObjectURL(url);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'tokea-organizer-analytics.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
+
   const action = workflowActions[module];
-  return <div className="organizer-workspace"><header className="organizer-header"><div><p className="section-kicker">Organizer workspace</p><h1>{config.title}</h1><p>{config.description}</p></div>{module === 'events' ? <Link href="/dashboard/organizer/create" className="button"><Plus size={16} />{config.action}</Link> : module === 'analytics' ? <button className="button" type="button" onClick={exportReport}><Download size={16} />{config.action}</button> : <button className="button" type="button" onClick={() => setActiveAction(action)}><Plus size={16} />{config.action}</button>}</header><div className="workspace-metrics">{config.metrics.map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</div><section className="organizer-panel workspace-table"><div className="panel-heading"><h2>Current activity</h2><div className="compact-tabs">{['All', 'Ready', 'Action needed'].map((item) => <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)}>{item}</button>)}</div></div><table className="table"><thead><tr><th>Item</th><th>Details</th><th>Status</th><th /></tr></thead><tbody>{rows.map((row) => <tr key={row[0]}><td><strong>{row[0]}</strong></td><td>{row[1]}</td><td><span className="status">{row[2]}</span></td><td><Link href="/dashboard/organizer/events" aria-label={`Manage ${row[0]}`}><ArrowRight size={16} /></Link></td></tr>)}</tbody></table></section>{activeAction && <OrganizerActionForm action={activeAction} onClose={() => setActiveAction(null)} />}</div>;
+
+  return (
+    <div className="organizer-workspace">
+      <header className="organizer-header">
+        <div>
+          <p className="section-kicker">Organizer workspace</p>
+          <h1>{config.title}</h1>
+          <p>{config.description}</p>
+        </div>
+        {module === 'events' ? (
+          <Link href="/dashboard/organizer/create" className="button"><Plus size={16} />{config.action}</Link>
+        ) : module === 'analytics' ? (
+          <button className="button" type="button" onClick={exportReport}><Download size={16} />{config.action}</button>
+        ) : (
+          <button className="button" type="button" onClick={() => setActiveAction(action)}><Plus size={16} />{config.action}</button>
+        )}
+      </header>
+      <div className="workspace-metrics">
+        {config.metrics.map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}
+      </div>
+      <section className="organizer-panel workspace-table">
+        <div className="panel-heading">
+          <h2>Current activity</h2>
+          <div className="compact-tabs">
+            {['All', 'Ready', 'Action needed'].map((item) => <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)}>{item}</button>)}
+          </div>
+        </div>
+        <table className="table">
+          <thead><tr><th>Item</th><th>Details</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row[0]}>
+                <td><strong>{row[0]}</strong></td>
+                <td>{row[1]}</td>
+                <td><span className="status">{row[2]}</span></td>
+                <td><Link href="/dashboard/organizer/events" aria-label={`Manage ${row[0]}`}><ArrowRight size={16} /></Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      {activeAction && <OrganizerActionForm action={activeAction} onClose={() => setActiveAction(null)} />}
+    </div>
+  );
 }
 
 function CreateEventWizard() {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [step, setStep] = useState(0);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState('');
+  const [galleryFiles, setGalleryFiles] = useState<{ file: File; previewUrl: string }[]>([]);
   const [form, setForm] = useState({
     title: '',
     category: 'Music',
@@ -73,28 +147,201 @@ function CreateEventWizard() {
     if (!form.title.trim() || !form.startsAt || !form.venue.trim()) {
       setSaveMessage('Add an event name, start date, and venue before saving this draft.');
       setStep(0);
-      return;
+      return null;
     }
 
     setSaving(true);
     setSaveMessage('');
-    const response = await fetch('/api/organizer/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draftId ?? undefined, title: form.title, description: form.description, venue: form.venue, startsAt: new Date(`${form.startsAt}T18:00:00+03:00`).toISOString() }) });
+    const response = await fetch('/api/organizer/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: draftId ?? undefined,
+        title: form.title,
+        description: form.description,
+        venue: form.venue,
+        startsAt: new Date(`${form.startsAt}T18:00:00+03:00`).toISOString(),
+      }),
+    });
     const data = await response.json().catch(() => ({}));
     setSaving(false);
     if (!response.ok) {
       setSaveMessage(data.error ?? 'Unable to save the draft. Please try again.');
-      return;
+      return null;
     }
+
     setDraftId(data.event.id);
     setSaveMessage(data.message ?? 'Draft saved securely to your organizer workspace.');
+    return data.event.id as string;
   }
 
-  return <div className="organizer-workspace"><header className="organizer-header"><div><p className="section-kicker">Create an event</p><h1>Build your event</h1><p>Save progress at every stage, then preview and publish when your plan is complete.</p></div><button className="button secondary" type="button" onClick={saveDraft} disabled={saving}><Save size={16} />{saving ? 'Saving...' : 'Save draft'}</button></header>{saveMessage && <div className="save-notice"><Check size={16} /> {saveMessage}</div>}<section className="organizer-panel wizard-panel"><div className="wizard-progress"><div><span>{wizardSteps[step]}</span><b>{progress}% complete</b></div><i><em style={{ width: `${progress}%` }} /></i></div><div className="wizard-layout"><nav>{wizardSteps.map((item, index) => <button type="button" key={item} className={index === step ? 'active' : index < step ? 'complete' : ''} onClick={() => setStep(index)}>{index < step ? <Check size={14} /> : <span>{index + 1}</span>}{item}</button>)}</nav><div className="wizard-content"><h2>{wizardSteps[step]}</h2><p>{step === 0 ? 'Start with the event title, category, description, and dates.' : step === 1 ? 'Add the operational venue information your team needs.' : step === wizardSteps.length - 1 ? 'Review the experience, then publish when every core detail is ready.' : `Configure ${wizardSteps[step].toLowerCase()} for the event.`}</p>{step === 0 && <div className="wizard-form"><label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /></label><label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}><option>Music</option><option>Business</option><option>Technology</option><option>Festival</option></select></label><label>Start date<input value={form.startsAt} onChange={(event) => updateField('startsAt', event.target.value)} type="date" /></label><label>Venue<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /></label><label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label></div>}{step === 1 && <div className="wizard-form"><label>Venue name<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /></label><label>City<input value={form.venueCity} onChange={(event) => updateField('venueCity', event.target.value)} placeholder="Nairobi" /></label><label>Capacity<input value={form.venueCapacity} onChange={(event) => updateField('venueCapacity', event.target.value)} type="number" placeholder="3000" /></label><label>Venue contact<input value={form.venueContact} onChange={(event) => updateField('venueContact', event.target.value)} type="tel" placeholder="2547..." /></label><label className="wide">Physical address<textarea value={form.venueAddress} onChange={(event) => updateField('venueAddress', event.target.value)} placeholder="Main entrance, parking guidance, access notes" /></label><label className="wide">Operations notes<textarea value={form.venueNotes} onChange={(event) => updateField('venueNotes', event.target.value)} placeholder="Loading bay, security access, sound restrictions, emergency exits" /></label></div>}{step > 1 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}{step === wizardSteps.length - 1 && <div className="wizard-preview"><strong>{form.title || 'Untitled event'}</strong><span>{form.venue || 'Venue to be confirmed'} · {form.startsAt || 'Date to be confirmed'}</span><p>Review each section, save the draft, then publish when the event is ready.</p><Link href="/dashboard/organizer/events" className="button">Preview event</Link></div>}<div className="wizard-actions"><button className="button secondary" type="button" disabled={step === 0} onClick={() => setStep((current) => current - 1)}>Back</button><button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>{step === wizardSteps.length - 1 ? 'Publish when ready' : 'Continue'} <ArrowRight size={16} /></button></div></div></div></section></div>;
+  function selectPoster(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setSaveMessage('Please choose an image file for the event poster.');
+      return;
+    }
+    setPosterFile(file);
+    setPosterPreview(URL.createObjectURL(file));
+  }
+
+  function selectGallery(files: FileList | null) {
+    const selected = Array.from(files ?? []).filter((file) => file.type.startsWith('image/'));
+    if (selected.length === 0) {
+      setSaveMessage('Choose one or more image files for the gallery.');
+      return;
+    }
+    setGalleryFiles(selected.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })));
+  }
+
+  function safeFileName(file: File) {
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const baseName = file.name.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'media';
+    return `${baseName}.${extension}`;
+  }
+
+  async function uploadFile(eventId: string, file: File, mediaType: 'poster' | 'image', displayOrder: number) {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) throw new Error('Please login again before uploading media.');
+
+    const path = `${userId}/${eventId}/${Date.now()}-${displayOrder}-${safeFileName(file)}`;
+    const { error: uploadError } = await supabase.storage.from('event-media').upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: false,
+    });
+    if (uploadError) throw uploadError;
+
+    if (mediaType === 'poster') {
+      const { error: deleteError } = await supabase.from('event_media').delete().eq('event_id', eventId).eq('media_type', 'poster');
+      if (deleteError) throw deleteError;
+    }
+
+    const { error: mediaError } = await supabase.from('event_media').insert({
+      event_id: eventId,
+      media_type: mediaType,
+      storage_path: path,
+      display_order: displayOrder,
+    });
+    if (mediaError) throw mediaError;
+  }
+
+  async function uploadMedia() {
+    if (!posterFile && galleryFiles.length === 0) {
+      setSaveMessage('Choose a poster or gallery image before uploading media.');
+      return;
+    }
+
+    setUploading(true);
+    setSaveMessage('');
+    try {
+      const eventId = draftId ?? await saveDraft();
+      if (!eventId) return;
+      if (posterFile) await uploadFile(eventId, posterFile, 'poster', 0);
+      for (const [index, item] of galleryFiles.entries()) {
+        await uploadFile(eventId, item.file, 'image', index + 1);
+      }
+      setSaveMessage('Media uploaded successfully to Supabase Storage.');
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : 'Unable to upload media. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="organizer-workspace">
+      <header className="organizer-header">
+        <div>
+          <p className="section-kicker">Create an event</p>
+          <h1>Build your event</h1>
+          <p>Save progress at every stage, then preview and publish when your plan is complete.</p>
+        </div>
+        <button className="button secondary" type="button" onClick={() => void saveDraft()} disabled={saving}>
+          <Save size={16} />{saving ? 'Saving...' : 'Save draft'}
+        </button>
+      </header>
+      {saveMessage && <div className="save-notice"><Check size={16} /> {saveMessage}</div>}
+      <section className="organizer-panel wizard-panel">
+        <div className="wizard-progress">
+          <div><span>{wizardSteps[step]}</span><b>{progress}% complete</b></div>
+          <i><em style={{ width: `${progress}%` }} /></i>
+        </div>
+        <div className="wizard-layout">
+          <nav>
+            {wizardSteps.map((item, index) => (
+              <button type="button" key={item} className={index === step ? 'active' : index < step ? 'complete' : ''} onClick={() => setStep(index)}>
+                {index < step ? <Check size={14} /> : <span>{index + 1}</span>}{item}
+              </button>
+            ))}
+          </nav>
+          <div className="wizard-content">
+            <h2>{wizardSteps[step]}</h2>
+            <p>{step === 0 ? 'Start with the event title, category, description, and dates.' : step === 1 ? 'Add the operational venue information your team needs.' : step === wizardSteps.length - 1 ? 'Review the experience, then publish when every core detail is ready.' : `Configure ${wizardSteps[step].toLowerCase()} for the event.`}</p>
+
+            {step === 0 && (
+              <div className="wizard-form">
+                <label>Event name<input value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Nairobi Gospel Night" /></label>
+                <label>Category<select value={form.category} onChange={(event) => updateField('category', event.target.value)}><option>Music</option><option>Business</option><option>Technology</option><option>Festival</option></select></label>
+                <label>Start date<input value={form.startsAt} onChange={(event) => updateField('startsAt', event.target.value)} type="date" /></label>
+                <label>Venue<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC, Nairobi" /></label>
+                <label className="wide">Description<textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} placeholder="Tell guests what makes this event worth showing up for." /></label>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="wizard-form">
+                <label>Venue name<input value={form.venue} onChange={(event) => updateField('venue', event.target.value)} placeholder="KICC" /></label>
+                <label>City<input value={form.venueCity} onChange={(event) => updateField('venueCity', event.target.value)} placeholder="Nairobi" /></label>
+                <label>Capacity<input value={form.venueCapacity} onChange={(event) => updateField('venueCapacity', event.target.value)} type="number" placeholder="3000" /></label>
+                <label>Venue contact<input value={form.venueContact} onChange={(event) => updateField('venueContact', event.target.value)} type="tel" placeholder="2547..." /></label>
+                <label className="wide">Physical address<textarea value={form.venueAddress} onChange={(event) => updateField('venueAddress', event.target.value)} placeholder="Main entrance, parking guidance, access notes" /></label>
+                <label className="wide">Operations notes<textarea value={form.venueNotes} onChange={(event) => updateField('venueNotes', event.target.value)} placeholder="Loading bay, security access, sound restrictions, emergency exits" /></label>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="wizard-form media-upload-form">
+                <label className="wide">Event poster<input type="file" accept="image/*" onChange={(event) => selectPoster(event.target.files?.[0])} /></label>
+                {posterPreview && <div className="media-preview wide" style={{ backgroundImage: `url(${posterPreview})` }}><span>Poster preview</span></div>}
+                <label className="wide">Gallery images<input type="file" accept="image/*" multiple onChange={(event) => selectGallery(event.target.files)} /></label>
+                {galleryFiles.length > 0 && <div className="media-gallery-preview wide">{galleryFiles.map((item) => <div key={item.previewUrl} style={{ backgroundImage: `url(${item.previewUrl})` }} />)}</div>}
+                <div className="wide media-upload-actions">
+                  <button className="button" type="button" onClick={() => void uploadMedia()} disabled={uploading || saving}>
+                    <Upload size={16} />{uploading ? 'Uploading...' : 'Upload media'}
+                  </button>
+                  <span><ImagePlus size={15} /> Uploads are saved to Supabase Storage and linked to this event draft.</span>
+                </div>
+              </div>
+            )}
+
+            {step > 2 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
+
+            {step === wizardSteps.length - 1 && (
+              <div className="wizard-preview">
+                <strong>{form.title || 'Untitled event'}</strong>
+                <span>{form.venue || 'Venue to be confirmed'} - {form.startsAt || 'Date to be confirmed'}</span>
+                <p>Review each section, save the draft, then publish when the event is ready.</p>
+                <Link href="/dashboard/organizer/events" className="button">Preview event</Link>
+              </div>
+            )}
+
+            <div className="wizard-actions">
+              <button className="button secondary" type="button" disabled={step === 0} onClick={() => setStep((current) => current - 1)}>Back</button>
+              <button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>
+                {step === wizardSteps.length - 1 ? 'Publish when ready' : 'Continue'} <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function WizardStageFields({ step }: { step: number }) {
   const fields: Record<number, [string, string, string][]> = {
-    2: [['Poster URL', 'url', 'https://'], ['Gallery image URLs', 'text', 'Comma-separated image URLs']],
     3: [['Schedule title', 'text', 'Main programme'], ['Start time', 'time', ''], ['End time', 'time', '']],
     4: [['Ticket name', 'text', 'Regular'], ['Price (KES)', 'number', '2500'], ['Quantity', 'number', '500']],
     5: [['Food vendor brief', 'text', 'Cuisine and stall requirements'], ['Vendor fee (KES)', 'number', '']],
@@ -105,5 +352,12 @@ function WizardStageFields({ step }: { step: number }) {
     10: [['Budget category', 'text', 'Production'], ['Budget (KES)', 'number', '']],
     11: [['Campaign name', 'text', 'Launch campaign'], ['Primary channel', 'text', 'Instagram']],
   };
-  return <div className="wizard-form">{(fields[step] ?? []).map(([label, type, placeholder]) => <label key={label}>{label}<input type={type} placeholder={placeholder} /></label>)}</div>;
+
+  return (
+    <div className="wizard-form">
+      {(fields[step] ?? []).map(([label, type, placeholder]) => (
+        <label key={label}>{label}<input type={type} placeholder={placeholder} /></label>
+      ))}
+    </div>
+  );
 }
