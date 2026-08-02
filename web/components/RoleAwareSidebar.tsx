@@ -82,9 +82,8 @@ export function RoleAwareSidebar() {
         </div>
         <div className="sidebar-top-actions">
           {email && (
-            <button className="sidebar-logout-top" type="button" onClick={logout}>
+            <button className="sidebar-logout-top" type="button" onClick={logout} aria-label="Logout" title="Logout">
               <LogOut size={16} />
-              <span>Logout</span>
             </button>
           )}
           <button className="icon-button ghost" aria-label="Collapse navigation" type="button">

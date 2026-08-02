@@ -172,6 +172,14 @@ export function OrganizerWorkspace({ module }: { module: string }) {
 
   const action = workflowActions[module];
 
+  function openRowAction() {
+    if (module === 'analytics') {
+      exportReport();
+      return;
+    }
+    if (action) setActiveAction(action);
+  }
+
   return (
     <div className="organizer-workspace">
       <header className="organizer-header">
@@ -206,7 +214,17 @@ export function OrganizerWorkspace({ module }: { module: string }) {
                 <td><strong>{row[0]}</strong></td>
                 <td>{row[1]}</td>
                 <td><span className="status">{row[2]}</span></td>
-                <td><Link href="/dashboard/organizer/events" aria-label={`Manage ${row[0]}`}><ArrowRight size={16} /></Link></td>
+                <td>
+                  {module === 'events' ? (
+                    <Link className="row-action-button" href="/dashboard/organizer/create" aria-label={`Continue setup for ${row[0]}`} title={`Continue setup for ${row[0]}`}>
+                      <ArrowRight size={16} />
+                    </Link>
+                  ) : (
+                    <button className="row-action-button" type="button" onClick={openRowAction} aria-label={`Open ${config.action} for ${row[0]}`} title={`Open ${config.action} for ${row[0]}`}>
+                      <ArrowRight size={16} />
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
