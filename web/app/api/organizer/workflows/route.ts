@@ -356,14 +356,12 @@ async function assignStaffToEvent(params: {
     .eq("assignment_id", assignment.id)
     .maybeSingle();
   if (!existingShift) {
-    const { error: shiftError } = await admin
-      .from("staff_shifts")
-      .insert({
-        event_id: params.eventId,
-        assignment_id: assignment.id,
-        name: `${params.roleTitle} Shift`,
-        ...window,
-      });
+    const { error: shiftError } = await admin.from("staff_shifts").insert({
+      event_id: params.eventId,
+      assignment_id: assignment.id,
+      name: `${params.roleTitle} Shift`,
+      ...window,
+    });
     if (shiftError) throw shiftError;
   }
   await ensureWorkspace(params.eventId, params.organizerId, params.eventTitle);
@@ -408,14 +406,12 @@ async function assignVolunteerToEvent(params: {
     .eq("volunteer_application_id", application.id)
     .maybeSingle();
   if (!existingShift) {
-    const { error: shiftError } = await admin
-      .from("staff_shifts")
-      .insert({
-        event_id: params.eventId,
-        volunteer_application_id: application.id,
-        name: "Volunteer Shift",
-        ...window,
-      });
+    const { error: shiftError } = await admin.from("staff_shifts").insert({
+      event_id: params.eventId,
+      volunteer_application_id: application.id,
+      name: "Volunteer Shift",
+      ...window,
+    });
     if (shiftError) throw shiftError;
   }
   await ensureWorkspace(params.eventId, params.organizerId, params.eventTitle);
@@ -562,19 +558,17 @@ export async function POST(request: NextRequest) {
             if (!z.string().email().safeParse(email).success)
               throw new Error("Enter a valid staff email address.");
             const roleTitle = text(row, "roleTitle", 2, 120);
-            ({ error } = await auth.supabase
-              .from("staff_invitations")
-              .upsert(
-                {
-                  event_id: eventId!,
-                  organizer_id: organizerId!,
-                  email,
-                  role_title: roleTitle,
-                  department: normalizeDepartment(row.department),
-                  created_by: auth.user.id,
-                },
-                { onConflict: "event_id,email" },
-              ));
+            ({ error } = await auth.supabase.from("staff_invitations").upsert(
+              {
+                event_id: eventId!,
+                organizer_id: organizerId!,
+                email,
+                role_title: roleTitle,
+                department: normalizeDepartment(row.department),
+                created_by: auth.user.id,
+              },
+              { onConflict: "event_id,email" },
+            ));
             if (error) break;
             const assignment = await assignStaffToEvent({
               email,
@@ -665,6 +659,16 @@ export async function POST(request: NextRequest) {
           });
           let created = 0;
           const admin = createSupabaseAdminClient();
+          const { error: clearApplicationsError } = await admin
+            .from("food_vendor_applications")
+            .delete()
+            .eq("event_id", eventId!);
+          if (clearApplicationsError) throw clearApplicationsError;
+          const { error: clearStallsError } = await admin
+            .from("food_stalls")
+            .delete()
+            .eq("event_id", eventId!);
+          if (clearStallsError) throw clearStallsError;
           for (const row of rows) {
             const { data: vendor, error: vendorError } = await admin
               .from("food_vendors")

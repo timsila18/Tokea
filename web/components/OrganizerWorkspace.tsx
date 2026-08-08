@@ -36,6 +36,15 @@ type WizardScheduleRow = {
   locationLabel: string;
   description: string;
 };
+type WizardFoodoRow = {
+  vendorName: string;
+  cuisineType: string;
+  vendorFeeKes: string;
+  stallNumber: string;
+  location: string;
+  menuSummary: string;
+  requirements: string;
+};
 type WizardSponsorRow = {
   name: string;
   priceKes: string;
@@ -418,6 +427,38 @@ const wizardTicketDefaults: WizardTicketRow[] = [
   { name: "VVIP", priceKes: "12000", quantity: "50" },
   { name: "Regular Group of 5", priceKes: "11000", quantity: "80" },
   { name: "Gate Regular", priceKes: "3000", quantity: "300" },
+];
+const foodoCuisineSuggestions = [
+  "Nyama choma",
+  "Cocktails",
+  "Street food",
+  "Coffee and dessert",
+  "VIP lounge catering",
+  "Swahili dishes",
+  "Vegan and healthy",
+  "BBQ and grills",
+];
+const wizardFoodoDefaults: WizardFoodoRow[] = [
+  {
+    vendorName: "Urban Bites",
+    cuisineType: "Street food",
+    vendorFeeKes: "15000",
+    stallNumber: "F1",
+    location: "Food court",
+    menuSummary: "Loaded fries, burgers, wraps, and soft drinks.",
+    requirements:
+      "Tent, power point, water access, waste bin, and two vendor passes.",
+  },
+  {
+    vendorName: "Mama Njeri Kitchen",
+    cuisineType: "Nyama choma",
+    vendorFeeKes: "18000",
+    stallNumber: "F2",
+    location: "Grill zone",
+    menuSummary: "Nyama choma, mutura, kachumbari, ugali, and sauces.",
+    requirements:
+      "Grill clearance, fire safety check, water access, and waste handling.",
+  },
 ];
 const wizardSponsorDefaults: WizardSponsorRow[] = [
   {
@@ -1457,6 +1498,8 @@ function CreateEventWizard() {
   );
   const [ticketRows, setTicketRows] =
     useState<WizardTicketRow[]>(wizardTicketDefaults);
+  const [foodoRows, setFoodoRows] =
+    useState<WizardFoodoRow[]>(wizardFoodoDefaults);
   const [ticketSalesStart, setTicketSalesStart] = useState("");
   const [ticketSalesEnd, setTicketSalesEnd] = useState("");
   const [ticketDescription, setTicketDescription] = useState("");
@@ -1653,6 +1696,25 @@ function CreateEventWizard() {
     };
   }
 
+  function foodoFields() {
+    return {
+      foodoVendors: JSON.stringify(
+        foodoRows
+          .map((row) => ({
+            ...row,
+            vendorName: row.vendorName.trim(),
+            cuisineType: row.cuisineType.trim(),
+            vendorFeeKes: row.vendorFeeKes.trim(),
+            stallNumber: row.stallNumber.trim(),
+            location: row.location.trim(),
+            menuSummary: row.menuSummary.trim(),
+            requirements: row.requirements.trim(),
+          }))
+          .filter((row) => row.vendorName && row.cuisineType),
+      ),
+    };
+  }
+
   function sponsorFields() {
     return {
       sponsorshipPackages: JSON.stringify(
@@ -1717,6 +1779,8 @@ function CreateEventWizard() {
         ticketFields(),
         "Ticket categories saved.",
       );
+    if (step === 5)
+      return saveWizardWorkflow("foodo", foodoFields(), "Foodo vendors saved.");
     if (step === 7)
       return saveWizardWorkflow(
         "staff_invite",
@@ -1752,7 +1816,7 @@ function CreateEventWizard() {
   }
 
   async function saveAndAdvance() {
-    const shouldSaveStep = [3, 4, 7, 8, 9, 10, 11].includes(step);
+    const shouldSaveStep = [3, 4, 5, 7, 8, 9, 10, 11].includes(step);
     if (shouldSaveStep) {
       const saved = await saveCurrentProgress();
       if (!saved) return;
@@ -2189,6 +2253,10 @@ function CreateEventWizard() {
               />
             )}
 
+            {step === 5 && (
+              <FoodoStageFields rows={foodoRows} setRows={setFoodoRows} />
+            )}
+
             {step === 7 && (
               <StaffStageFields rows={staffRows} setRows={setStaffRows} />
             )}
@@ -2216,7 +2284,7 @@ function CreateEventWizard() {
             )}
 
             {step > 2 &&
-              ![3, 4, 7, 8, 9, 10, 11].includes(step) &&
+              ![3, 4, 5, 7, 8, 9, 10, 11].includes(step) &&
               step < wizardSteps.length - 1 && (
                 <WizardStageFields step={step} />
               )}
@@ -2283,17 +2351,19 @@ function CreateEventWizard() {
                         ? "Save schedule"
                         : step === 4
                           ? "Save tickets"
-                          : step === 7
-                            ? "Save staff"
-                            : step === 8
-                              ? "Save volunteers"
-                              : step === 9
-                                ? "Save sponsors"
-                                : step === 10
-                                  ? "Save budget"
-                                  : step === 11
-                                    ? "Save marketing"
-                                    : "Continue"}{" "}
+                          : step === 5
+                            ? "Save Foodo"
+                            : step === 7
+                              ? "Save staff"
+                              : step === 8
+                                ? "Save volunteers"
+                                : step === 9
+                                  ? "Save sponsors"
+                                  : step === 10
+                                    ? "Save budget"
+                                    : step === 11
+                                      ? "Save marketing"
+                                      : "Continue"}{" "}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -2697,6 +2767,149 @@ function TicketStageFields({
           placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level."
         />
       </label>
+    </div>
+  );
+}
+
+function FoodoStageFields({
+  rows,
+  setRows,
+}: {
+  rows: WizardFoodoRow[];
+  setRows: (rows: WizardFoodoRow[]) => void;
+}) {
+  function updateRow(index: number, key: keyof WizardFoodoRow, value: string) {
+    setRows(
+      rows.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, [key]: value } : row,
+      ),
+    );
+  }
+
+  function addRow() {
+    setRows([
+      ...rows,
+      {
+        vendorName: "",
+        cuisineType: "Coffee and dessert",
+        vendorFeeKes: "12000",
+        stallNumber: `F${rows.length + 1}`,
+        location: "Food court",
+        menuSummary: "",
+        requirements: "",
+      },
+    ]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1)
+      setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head">
+        <strong>Foodo vendor tray</strong>
+      </div>
+      {rows.map((row, index) => (
+        <div
+          className="ticket-bulk-card multi-record-card"
+          key={`foodo-${index}`}
+        >
+          <div className="multi-record-head">
+            <strong>Vendor {index + 1}</strong>
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              disabled={rows.length === 1}
+            >
+              Remove
+            </button>
+          </div>
+          <label>
+            Vendor name
+            <input
+              value={row.vendorName}
+              onChange={(event) =>
+                updateRow(index, "vendorName", event.target.value)
+              }
+              placeholder="Vendor business name"
+            />
+          </label>
+          <label>
+            Food category
+            <select
+              value={row.cuisineType}
+              onChange={(event) =>
+                updateRow(index, "cuisineType", event.target.value)
+              }
+            >
+              {foodoCuisineSuggestions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <SuggestionChips
+              options={foodoCuisineSuggestions.slice(0, 5)}
+              onPick={(value) => updateRow(index, "cuisineType", value)}
+            />
+          </label>
+          <label>
+            Vendor fee (KES)
+            <input
+              type="number"
+              value={row.vendorFeeKes}
+              onChange={(event) =>
+                updateRow(index, "vendorFeeKes", event.target.value)
+              }
+            />
+          </label>
+          <label>
+            Stall
+            <input
+              value={row.stallNumber}
+              onChange={(event) =>
+                updateRow(index, "stallNumber", event.target.value)
+              }
+              placeholder="F1"
+            />
+          </label>
+          <label className="wide">
+            Location
+            <input
+              value={row.location}
+              onChange={(event) =>
+                updateRow(index, "location", event.target.value)
+              }
+              placeholder="Food court, VIP lounge, grill zone"
+            />
+          </label>
+          <label className="wide">
+            Menu summary
+            <textarea
+              value={row.menuSummary}
+              onChange={(event) =>
+                updateRow(index, "menuSummary", event.target.value)
+              }
+              placeholder="Main items, drinks, combos, specials, and expected menu range."
+            />
+          </label>
+          <label className="wide">
+            Requirements
+            <textarea
+              value={row.requirements}
+              onChange={(event) =>
+                updateRow(index, "requirements", event.target.value)
+              }
+              placeholder="Power, water, tent, fire safety, compliance, passes, waste handling."
+            />
+          </label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>
+        Add another Foodo vendor
+      </button>
     </div>
   );
 }
