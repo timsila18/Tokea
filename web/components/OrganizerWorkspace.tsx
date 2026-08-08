@@ -871,13 +871,8 @@ function PickerField({ label, type, value, onChange }: { label: string; type: 'd
         <input ref={inputRef} className="picker-input" value={value} onChange={(event) => onChange(event.target.value)} type={type} />
         <button type="button" onClick={openPicker}>Pick {kind}</button>
       </div>
-      <PickerHelp kind={kind} />
     </label>
   );
-}
-
-function PickerHelp({ kind }: { kind: 'date' | 'time' }) {
-  return <span className="picker-help">Use the Pick {kind} button or click inside the field.</span>;
 }
 
 function TicketStageFields({ rows, setRows, salesStart, setSalesStart, salesEnd, setSalesEnd, description, setDescription }: {

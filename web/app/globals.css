@@ -1860,7 +1860,6 @@ button {
 .report-card dl div { background: rgba(0,0,0,.24); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 .report-card dt { color: var(--muted); font-size: 11px; }
 .report-card dd { color: var(--text); font-size: 16px; font-weight: 900; margin: 4px 0 0; }
-.picker-help { color: var(--gold); font-size: 11px; font-weight: 750; line-height: 1.35; }
 .picker-input { color-scheme: dark; cursor: pointer; padding-right: 44px !important; }
 .picker-input::-webkit-calendar-picker-indicator { background-color: rgba(212,175,55,.9); border-radius: 6px; cursor: pointer; filter: invert(0); height: 18px; opacity: 1; padding: 5px; width: 18px; }
 .picker-control { align-items: stretch; display: grid; gap: 8px; grid-template-columns: minmax(0,1fr) auto; }
