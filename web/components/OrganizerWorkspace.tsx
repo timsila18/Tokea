@@ -21,6 +21,8 @@ type OrganizerReport = {
   insight: string;
   metrics: [string, string][];
 };
+type WizardTicketRow = { name: string; priceKes: string; quantity: string };
+type WizardSponsorRow = { name: string; priceKes: string; inventory: string; benefits: string };
 
 const modules: Record<string, Module> = {
   events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
@@ -46,6 +48,18 @@ const eventCategories = ['Music', 'Gospel', 'Sports', 'Business', 'Technology', 
 const venueSuggestions = ['KICC', 'Uhuru Gardens', 'The Carnivore Grounds', 'Sarit Expo Centre', 'Two Rivers Mall', 'The Hub Karen', 'Kenyatta Stadium', 'Nairobi Street Kitchen', 'Bomas of Kenya', 'The Standup Lounge'];
 const cityOptions = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Naivasha', 'Thika', 'Machakos', 'Diani', 'Nanyuki'];
 const eventNameSuggestions = ['Blankets & Wine Nairobi', 'Nairobi Gospel Night', 'Koroga Festival 2026', 'Campus Amapiano Festival', 'Tech Founders Summit'];
+const wizardTicketDefaults: WizardTicketRow[] = [
+  { name: 'Regular', priceKes: '2500', quantity: '500' },
+  { name: 'VIP', priceKes: '6500', quantity: '150' },
+  { name: 'VVIP', priceKes: '12000', quantity: '50' },
+  { name: 'Regular Group of 5', priceKes: '11000', quantity: '80' },
+  { name: 'Gate Regular', priceKes: '3000', quantity: '300' },
+];
+const wizardSponsorDefaults: WizardSponsorRow[] = [
+  { name: 'Gold Partner', priceKes: '250000', inventory: '3', benefits: 'Logo on event poster\nStage mentions\nVIP tickets\nSocial media feature' },
+  { name: 'Beverage Partner', priceKes: '150000', inventory: '2', benefits: 'Brand booth\nPouring rights\nSocial media feature' },
+];
+const sponsorshipPackages = ['Title Partner', 'Gold Partner', 'Silver Partner', 'Bronze Partner', 'Stage Partner', 'Beverage Partner', 'Connectivity Partner', 'Media Partner'];
 type WizardField = {
   name: string;
   label: string;
@@ -345,6 +359,11 @@ function CreateEventWizard() {
   const [posterPreview, setPosterPreview] = useState('');
   const [activeAction, setActiveAction] = useState<OrganizerAction | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [ticketRows, setTicketRows] = useState<WizardTicketRow[]>(wizardTicketDefaults);
+  const [ticketSalesStart, setTicketSalesStart] = useState('');
+  const [ticketSalesEnd, setTicketSalesEnd] = useState('');
+  const [ticketDescription, setTicketDescription] = useState('');
+  const [sponsorRows, setSponsorRows] = useState<WizardSponsorRow[]>(wizardSponsorDefaults);
   const [form, setForm] = useState({
     title: '',
     category: 'Music',
@@ -388,14 +407,15 @@ function CreateEventWizard() {
   }
 
   async function saveDraft() {
-    if (!form.title.trim() || !form.startDate || !form.startTime || !form.venue.trim()) {
-      setSaveMessage('Add an event name, start date, start time, and venue before saving this draft.');
-      setStep(0);
-      return null;
-    }
+    const draftTitle = form.title.trim() || 'Untitled event';
+    const draftVenue = form.venue.trim() || 'Venue to be confirmed';
+    const draftStartDate = form.startDate || nextSaturday();
+    const draftStartTime = form.startTime || '18:00';
+    const draftEndDate = form.endDate || draftStartDate;
+    const draftEndTime = form.endTime || '';
 
-    const startsAt = new Date(`${form.startDate}T${form.startTime}:00+03:00`);
-    const endsAt = form.endDate && form.endTime ? new Date(`${form.endDate}T${form.endTime}:00+03:00`) : null;
+    const startsAt = new Date(`${draftStartDate}T${draftStartTime}:00+03:00`);
+    const endsAt = draftEndTime ? new Date(`${draftEndDate}T${draftEndTime}:00+03:00`) : null;
     if (Number.isNaN(startsAt.getTime()) || (endsAt && Number.isNaN(endsAt.getTime()))) {
       setSaveMessage('Choose a valid event date and time before saving this draft.');
       setStep(0);
@@ -409,9 +429,9 @@ function CreateEventWizard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: draftId ?? undefined,
-        title: form.title,
+        title: draftTitle,
         description: form.description,
-        venue: form.venue,
+        venue: draftVenue,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt?.toISOString() ?? undefined,
       }),
@@ -424,8 +444,67 @@ function CreateEventWizard() {
     }
 
     setDraftId(data.event.id);
+    setForm((current) => ({
+      ...current,
+      title: current.title || draftTitle,
+      venue: current.venue || draftVenue,
+      startDate: current.startDate || draftStartDate,
+      startTime: current.startTime || draftStartTime,
+      endDate: current.endDate || draftEndDate,
+    }));
     setSaveMessage(data.message ?? 'Draft saved securely to your organizer workspace.');
     return data.event.id as string;
+  }
+
+  async function saveWizardWorkflow(action: OrganizerAction, fields: Record<string, string>, successMessage: string) {
+    const eventId = draftId ?? await saveDraft();
+    if (!eventId) return false;
+    setSaving(true);
+    setSaveMessage('');
+    const response = await fetch('/api/organizer/workflows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, eventId, fields }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setSaving(false);
+    if (!response.ok) {
+      setSaveMessage(data.error ?? 'Unable to save this step. Please try again.');
+      return false;
+    }
+    setSaveMessage(data.message ?? successMessage);
+    return true;
+  }
+
+  function ticketFields() {
+    return {
+      ticketTypes: JSON.stringify(ticketRows.filter((row) => Number(row.quantity) > 0)),
+      salesStart: ticketSalesStart,
+      salesEnd: ticketSalesEnd,
+      description: ticketDescription,
+    };
+  }
+
+  function sponsorFields() {
+    return {
+      sponsorshipPackages: JSON.stringify(sponsorRows.filter((row) => row.name.trim() && Number(row.inventory) > 0)),
+    };
+  }
+
+  async function saveCurrentProgress() {
+    if (step === 4) return saveWizardWorkflow('ticket_type', ticketFields(), 'Ticket categories saved.');
+    if (step === 9) return saveWizardWorkflow('sponsorship_package', sponsorFields(), 'Sponsor packages saved.');
+    const eventId = await saveDraft();
+    return Boolean(eventId);
+  }
+
+  async function saveAndAdvance() {
+    const shouldSaveStep = step === 4 || step === 9;
+    if (shouldSaveStep) {
+      const saved = await saveCurrentProgress();
+      if (!saved) return;
+    }
+    setStep((current) => Math.min(current + 1, wizardSteps.length - 1));
   }
 
   function selectPoster(file: File | undefined) {
@@ -517,7 +596,7 @@ function CreateEventWizard() {
           <h1>Build your event</h1>
           <p>Save progress at every stage, then preview and publish when your plan is complete.</p>
         </div>
-        <button className="button secondary" type="button" onClick={() => void saveDraft()} disabled={saving}>
+        <button className="button secondary" type="button" onClick={() => void saveCurrentProgress()} disabled={saving}>
           <Save size={16} />{saving ? 'Saving...' : 'Save draft'}
         </button>
       </header>
@@ -583,9 +662,22 @@ function CreateEventWizard() {
               </div>
             )}
 
-            {step === 4 && <TicketStageFields />}
+            {step === 4 && (
+              <TicketStageFields
+                rows={ticketRows}
+                setRows={setTicketRows}
+                salesStart={ticketSalesStart}
+                setSalesStart={setTicketSalesStart}
+                salesEnd={ticketSalesEnd}
+                setSalesEnd={setTicketSalesEnd}
+                description={ticketDescription}
+                setDescription={setTicketDescription}
+              />
+            )}
 
-            {step > 2 && step !== 4 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
+            {step === 9 && <SponsorStageFields rows={sponsorRows} setRows={setSponsorRows} />}
+
+            {step > 2 && step !== 4 && step !== 9 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
 
             {step === wizardSteps.length - 1 && (
               <div className="wizard-preview">
@@ -601,8 +693,8 @@ function CreateEventWizard() {
               <div className="wizard-action-group">
                 {wizardWorkflowActions[step] && <button className="button secondary" type="button" onClick={() => void openFullSetup(wizardWorkflowActions[step]!)}>Open full setup</button>}
                 {step >= 5 && step < wizardSteps.length - 1 && <button className="button secondary" type="button" onClick={() => setStep(wizardSteps.length - 1)}>Skip add-ons</button>}
-                <button className="button" type="button" onClick={() => setStep((current) => Math.min(current + 1, wizardSteps.length - 1))}>
-                  {step === wizardSteps.length - 1 ? 'Publish when ready' : step >= 5 ? 'Save optional step' : 'Continue'} <ArrowRight size={16} />
+                <button className="button" type="button" onClick={() => void saveAndAdvance()} disabled={saving}>
+                  {saving ? 'Saving...' : step === wizardSteps.length - 1 ? 'Publish when ready' : step === 4 ? 'Save tickets' : step === 9 ? 'Save sponsors' : 'Continue'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -698,17 +790,73 @@ function PickerHelp({ kind }: { kind: 'date' | 'time' }) {
   return <span className="picker-help">Use the Pick {kind} button or click inside the field.</span>;
 }
 
-function TicketStageFields() {
-  const [salesStart, setSalesStart] = useState('');
-  const [salesEnd, setSalesEnd] = useState('');
+function TicketStageFields({ rows, setRows, salesStart, setSalesStart, salesEnd, setSalesEnd, description, setDescription }: {
+  rows: WizardTicketRow[];
+  setRows: (rows: WizardTicketRow[]) => void;
+  salesStart: string;
+  setSalesStart: (value: string) => void;
+  salesEnd: string;
+  setSalesEnd: (value: string) => void;
+  description: string;
+  setDescription: (value: string) => void;
+}) {
+  function updateRow(index: number, key: keyof WizardTicketRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { name: 'Regular', priceKes: '0', quantity: '100' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
 
   return (
     <div className="wizard-form ticket-bulk-grid">
-      <div className="wide ticket-bulk-head"><strong>Standard ticket categories</strong><span>Configure several ticket types for this event instead of adding one at a time.</span></div>
-      {standardTicketTypes.map((name, index) => <div className="ticket-bulk-card" key={name}><strong>{name}</strong><label>Price (KES)<input type="number" placeholder={String([2500, 6500, 12000, 11000, 3000][index])} /></label><label>Quantity<input type="number" placeholder={String([500, 150, 50, 80, 300][index])} /></label></div>)}
+      <div className="wide ticket-bulk-head"><strong>Ticket tray</strong><span>Add every ticket category for this event, remove what you do not need, then click Save tickets before continuing.</span></div>
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`ticket-${index}`}>
+          <div className="multi-record-head"><strong>Ticket {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label>Type<select value={row.name} onChange={(event) => updateRow(index, 'name', event.target.value)}>{standardTicketTypes.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
+          <label>Price (KES)<input type="number" value={row.priceKes} onChange={(event) => updateRow(index, 'priceKes', event.target.value)} /></label>
+          <label>Quantity<input type="number" value={row.quantity} onChange={(event) => updateRow(index, 'quantity', event.target.value)} /></label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another ticket type</button>
       <PickerField label="Sales start" type="datetime-local" value={salesStart} onChange={setSalesStart} />
       <PickerField label="Sales end" type="datetime-local" value={salesEnd} onChange={setSalesEnd} />
-      <label className="wide">Description<textarea placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
+      <label className="wide">Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
+    </div>
+  );
+}
+
+function SponsorStageFields({ rows, setRows }: { rows: WizardSponsorRow[]; setRows: (rows: WizardSponsorRow[]) => void }) {
+  function updateRow(index: number, key: keyof WizardSponsorRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { name: 'Bronze Partner', priceKes: '75000', inventory: '1', benefits: 'Logo on event page\nSocial media mention\nGeneral admission tickets' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head"><strong>Sponsor package tray</strong><span>Add every sponsor package you want to sell, define package value and benefits, then click Save sponsors before continuing.</span></div>
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`sponsor-${index}`}>
+          <div className="multi-record-head"><strong>Package {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label>Package<select value={row.name} onChange={(event) => updateRow(index, 'name', event.target.value)}>{sponsorshipPackages.map((name) => <option key={name} value={name}>{name}</option>)}</select><SuggestionChips options={sponsorshipPackages.slice(0, 5)} onPick={(value) => updateRow(index, 'name', value)} /></label>
+          <label>Package value (KES)<input type="number" value={row.priceKes} onChange={(event) => updateRow(index, 'priceKes', event.target.value)} /></label>
+          <label>Available packages<input type="number" value={row.inventory} onChange={(event) => updateRow(index, 'inventory', event.target.value)} /></label>
+          <label className="wide">Benefits<textarea value={row.benefits} onChange={(event) => updateRow(index, 'benefits', event.target.value)} placeholder="One benefit per line: logo placement, booth, mentions, VIP tickets..." /></label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another sponsor package</button>
     </div>
   );
 }

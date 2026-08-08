@@ -238,8 +238,10 @@ export async function POST(request: NextRequest) {
             sort_order: index,
             is_active: true,
           }));
+          const { error: deleteError } = await auth.supabase.from('ticket_types').delete().eq('event_id', eventId!);
+          if (deleteError) throw deleteError;
           ({ error } = await auth.supabase.from('ticket_types').insert(rows));
-          message = `${rows.length} ticket categor${rows.length === 1 ? 'y' : 'ies'} created.`;
+          message = `${rows.length} ticket categor${rows.length === 1 ? 'y' : 'ies'} saved.`;
         }
         break;
       case 'campaign':
@@ -364,6 +366,8 @@ export async function POST(request: NextRequest) {
       case 'sponsorship_package':
         {
           const rows = jsonRows(fields, 'sponsorshipPackages', fields).map((row) => ({ event_id: eventId!, name: text(row, 'name', 2, 100), price_cents: amount(row, 'priceKes'), benefits: text(row, 'benefits', 2, 1000).split('\n').map((item) => item.trim()).filter(Boolean), inventory_count: Number(text(row, 'inventory', 1, 5)), created_by: auth.user.id }));
+          const { error: deleteError } = await auth.supabase.from('sponsorship_packages').delete().eq('event_id', eventId!);
+          if (deleteError) throw deleteError;
           ({ error } = await auth.supabase.from('sponsorship_packages').insert(rows));
           message = `${rows.length} sponsorship package${rows.length === 1 ? '' : 's'} saved.`;
         }
