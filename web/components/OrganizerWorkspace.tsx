@@ -3304,15 +3304,20 @@ function VolunteerStageFields({
       setRows(rows.filter((_, rowIndex) => rowIndex !== index));
   }
 
+  function addRole(index: number, role: string) {
+    const current = rows[index]?.title ?? "";
+    const parts = current
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (!parts.includes(role)) parts.push(role);
+    updateRow(index, "title", parts.join(", "));
+  }
+
   return (
     <div className="wizard-form ticket-bulk-grid">
       <div className="wide ticket-bulk-head">
         <strong>Volunteer opportunity tray</strong>
-        <span>
-          Add every volunteer team you need, set capacity and shifts, optionally
-          assign a volunteer by email, then click Save volunteers before
-          continuing.
-        </span>
       </div>
       {rows.map((row, index) => (
         <div
@@ -3329,23 +3334,24 @@ function VolunteerStageFields({
               Remove
             </button>
           </div>
-          <label>
-            Volunteer role
-            <select
+          <label className="wide">
+            Volunteer roles / team
+            <input
+              list={`volunteer-role-suggestions-${index}`}
               value={row.title}
               onChange={(event) =>
                 updateRow(index, "title", event.target.value)
               }
-            >
+              placeholder="Guest experience team, Queue marshals, Lost and found"
+            />
+            <datalist id={`volunteer-role-suggestions-${index}`}>
               {volunteerRoleSuggestions.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
+                <option key={role} value={role} />
               ))}
-            </select>
+            </datalist>
             <SuggestionChips
-              options={volunteerRoleSuggestions.slice(0, 5)}
-              onPick={(value) => updateRow(index, "title", value)}
+              options={volunteerRoleSuggestions}
+              onPick={(value) => addRole(index, value)}
             />
           </label>
           <label>
