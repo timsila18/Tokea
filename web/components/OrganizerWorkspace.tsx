@@ -3558,10 +3558,6 @@ function BudgetStageFields({
     <div className="wizard-form ticket-bulk-grid">
       <div className="wide ticket-bulk-head">
         <strong>Budget line tray</strong>
-        <span>
-          Add all cost categories, estimate the amount, note what each line
-          covers, then click Save budget before continuing.
-        </span>
       </div>
       {rows.map((row, index) => (
         <div
