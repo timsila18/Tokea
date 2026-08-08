@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, Download, ImagePlus, Plus, Save, Upload } from 'lucide-react';
+import { ArrowRight, Check, Download, Plus, Save, Upload } from 'lucide-react';
 import { OrganizerActionForm, type OrganizerAction } from '@/components/OrganizerActionForm';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
@@ -739,7 +739,6 @@ function CreateEventWizard() {
                   <button className="button" type="button" onClick={() => void uploadMedia()} disabled={uploading || saving}>
                     <Upload size={16} />{uploading ? 'Uploading...' : 'Upload media'}
                   </button>
-                  <span><ImagePlus size={15} /> Uploads are saved to Supabase Storage and linked to this event draft.</span>
                 </div>
               </div>
             )}
