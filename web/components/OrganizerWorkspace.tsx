@@ -1529,6 +1529,7 @@ function CreateEventWizard() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [step, setStep] = useState(0);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftSlug, setDraftSlug] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -1678,6 +1679,7 @@ function CreateEventWizard() {
     }
 
     setDraftId(data.event.id);
+    setDraftSlug(data.event.share_slug ?? data.event.id);
     setForm((current) => ({
       ...current,
       title: current.title || draftTitle,
@@ -1690,6 +1692,38 @@ function CreateEventWizard() {
       data.message ?? "Draft saved securely to your organizer workspace.",
     );
     return data.event.id as string;
+  }
+
+  async function previewEvent() {
+    const eventId = draftId ?? (await saveDraft());
+    if (!eventId) return;
+    const slug = draftSlug ?? eventId;
+    window.open(`/events/${slug}?preview=1`, "_blank", "noopener,noreferrer");
+  }
+
+  async function publishEvent() {
+    const eventId = draftId ?? (await saveDraft());
+    if (!eventId) return;
+
+    setSaving(true);
+    setSaveMessage("");
+    const response = await fetch("/api/organizer/events", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: eventId, action: "publish" }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setSaving(false);
+
+    if (!response.ok) {
+      setSaveMessage(data.error ?? "Unable to publish this event.");
+      return;
+    }
+
+    setDraftSlug(data.event?.share_slug ?? draftSlug ?? eventId);
+    setSaveMessage(data.message ?? "Event published successfully.");
+    window.location.href =
+      data.url ?? `/events/${data.event?.share_slug ?? draftSlug ?? eventId}`;
   }
 
   async function saveWizardWorkflow(
@@ -2381,9 +2415,13 @@ function CreateEventWizard() {
                   Review each section, save the draft, then publish when the
                   event is ready.
                 </p>
-                <Link href="/dashboard/organizer/events" className="button">
+                <button
+                  type="button"
+                  onClick={() => void previewEvent()}
+                  className="button"
+                >
                   Preview event
-                </Link>
+                </button>
               </div>
             )}
 
@@ -2420,7 +2458,11 @@ function CreateEventWizard() {
                 <button
                   className="button"
                   type="button"
-                  onClick={() => void saveAndAdvance()}
+                  onClick={() =>
+                    step === wizardSteps.length - 1
+                      ? void publishEvent()
+                      : void saveAndAdvance()
+                  }
                   disabled={saving}
                 >
                   {saving
