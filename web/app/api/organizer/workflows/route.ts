@@ -283,10 +283,13 @@ export async function POST(request: NextRequest) {
       case 'staff_invite':
         {
           const rows = jsonRows(fields, 'staffInvites', fields);
+          const { error: clearError } = await auth.supabase.from('staff_invitations').delete().eq('event_id', eventId!);
+          if (clearError) throw clearError;
           let assignedCount = 0;
           let pendingCount = 0;
           for (const row of rows) {
             const email = text(row, 'email', 5, 254).toLowerCase();
+            if (!z.string().email().safeParse(email).success) throw new Error('Enter a valid staff email address.');
             const roleTitle = text(row, 'roleTitle', 2, 120);
             ({ error } = await auth.supabase.from('staff_invitations').upsert({ event_id: eventId!, organizer_id: organizerId!, email, role_title: roleTitle, department: normalizeDepartment(row.department), created_by: auth.user.id }, { onConflict: 'event_id,email' }));
             if (error) break;

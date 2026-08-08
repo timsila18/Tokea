@@ -23,6 +23,7 @@ type OrganizerReport = {
 };
 type WizardTicketRow = { name: string; priceKes: string; quantity: string };
 type WizardSponsorRow = { name: string; priceKes: string; inventory: string; benefits: string };
+type WizardStaffRow = { email: string; roleTitle: string; department: string; shiftStart: string; shiftEnd: string };
 
 const modules: Record<string, Module> = {
   events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
@@ -60,6 +61,27 @@ const wizardSponsorDefaults: WizardSponsorRow[] = [
   { name: 'Beverage Partner', priceKes: '150000', inventory: '2', benefits: 'Brand booth\nPouring rights\nSocial media feature' },
 ];
 const sponsorshipPackages = ['Title Partner', 'Gold Partner', 'Silver Partner', 'Bronze Partner', 'Stage Partner', 'Beverage Partner', 'Connectivity Partner', 'Media Partner'];
+const staffRoleSuggestions = ['Security Lead', 'Security Guard', 'Gate Scanner', 'Usher', 'VIP Host', 'Customer Support', 'Media Crew', 'Stage Manager', 'Backstage Assistant', 'Parking Attendant', 'Medical Desk Lead', 'Artist Liaison'];
+const staffDepartmentOptions = [
+  ['security', 'Security'],
+  ['ushers', 'Ushers'],
+  ['ticket_scanners', 'Ticket scanners'],
+  ['parking_staff', 'Parking staff'],
+  ['cleaners', 'Cleaners'],
+  ['media_team', 'Media team'],
+  ['photographers', 'Photographers'],
+  ['videographers', 'Videographers'],
+  ['mc_team', 'MC team'],
+  ['vip_coordinators', 'VIP coordinators'],
+  ['customer_support', 'Customer support'],
+  ['backstage_staff', 'Backstage staff'],
+  ['operations_team', 'Operations team'],
+];
+const wizardStaffDefaults: WizardStaffRow[] = [
+  { email: '', roleTitle: 'Security Lead', department: 'security', shiftStart: '', shiftEnd: '' },
+  { email: '', roleTitle: 'Gate Scanner', department: 'ticket_scanners', shiftStart: '', shiftEnd: '' },
+  { email: '', roleTitle: 'VIP Host', department: 'vip_coordinators', shiftStart: '', shiftEnd: '' },
+];
 type WizardField = {
   name: string;
   label: string;
@@ -364,6 +386,7 @@ function CreateEventWizard() {
   const [ticketSalesEnd, setTicketSalesEnd] = useState('');
   const [ticketDescription, setTicketDescription] = useState('');
   const [sponsorRows, setSponsorRows] = useState<WizardSponsorRow[]>(wizardSponsorDefaults);
+  const [staffRows, setStaffRows] = useState<WizardStaffRow[]>(wizardStaffDefaults);
   const [form, setForm] = useState({
     title: '',
     category: 'Music',
@@ -491,15 +514,25 @@ function CreateEventWizard() {
     };
   }
 
+  function staffFields() {
+    const rows = staffRows
+      .map((row) => ({ ...row, email: row.email.trim().toLowerCase(), roleTitle: row.roleTitle.trim() }))
+      .filter((row) => row.email);
+    return {
+      staffInvites: JSON.stringify(rows),
+    };
+  }
+
   async function saveCurrentProgress() {
     if (step === 4) return saveWizardWorkflow('ticket_type', ticketFields(), 'Ticket categories saved.');
+    if (step === 7) return saveWizardWorkflow('staff_invite', staffFields(), 'Staff invitations saved.');
     if (step === 9) return saveWizardWorkflow('sponsorship_package', sponsorFields(), 'Sponsor packages saved.');
     const eventId = await saveDraft();
     return Boolean(eventId);
   }
 
   async function saveAndAdvance() {
-    const shouldSaveStep = step === 4 || step === 9;
+    const shouldSaveStep = step === 4 || step === 7 || step === 9;
     if (shouldSaveStep) {
       const saved = await saveCurrentProgress();
       if (!saved) return;
@@ -675,9 +708,11 @@ function CreateEventWizard() {
               />
             )}
 
+            {step === 7 && <StaffStageFields rows={staffRows} setRows={setStaffRows} />}
+
             {step === 9 && <SponsorStageFields rows={sponsorRows} setRows={setSponsorRows} />}
 
-            {step > 2 && step !== 4 && step !== 9 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
+            {step > 2 && step !== 4 && step !== 7 && step !== 9 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
 
             {step === wizardSteps.length - 1 && (
               <div className="wizard-preview">
@@ -694,7 +729,7 @@ function CreateEventWizard() {
                 {wizardWorkflowActions[step] && <button className="button secondary" type="button" onClick={() => void openFullSetup(wizardWorkflowActions[step]!)}>Open full setup</button>}
                 {step >= 5 && step < wizardSteps.length - 1 && <button className="button secondary" type="button" onClick={() => setStep(wizardSteps.length - 1)}>Skip add-ons</button>}
                 <button className="button" type="button" onClick={() => void saveAndAdvance()} disabled={saving}>
-                  {saving ? 'Saving...' : step === wizardSteps.length - 1 ? 'Publish when ready' : step === 4 ? 'Save tickets' : step === 9 ? 'Save sponsors' : 'Continue'} <ArrowRight size={16} />
+                  {saving ? 'Saving...' : step === wizardSteps.length - 1 ? 'Publish when ready' : step === 4 ? 'Save tickets' : step === 7 ? 'Save staff' : step === 9 ? 'Save sponsors' : 'Continue'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -827,6 +862,40 @@ function TicketStageFields({ rows, setRows, salesStart, setSalesStart, salesEnd,
       <PickerField label="Sales start" type="datetime-local" value={salesStart} onChange={setSalesStart} />
       <PickerField label="Sales end" type="datetime-local" value={salesEnd} onChange={setSalesEnd} />
       <label className="wide">Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe who this ticket is for, benefits, group size, gate restrictions, or access level." /></label>
+    </div>
+  );
+}
+
+function StaffStageFields({ rows, setRows }: { rows: WizardStaffRow[]; setRows: (rows: WizardStaffRow[]) => void }) {
+  function updateRow(index: number, key: keyof WizardStaffRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { email: '', roleTitle: 'Usher', department: 'ushers', shiftStart: '', shiftEnd: '' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head">
+        <strong>Staff invitation tray</strong>
+        <span>Add each staff member, choose their event role and shift, then click Save staff before continuing. Staff with existing Tokea accounts are assigned immediately; new staff remain as pending invitations.</span>
+      </div>
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`staff-${index}`}>
+          <div className="multi-record-head"><strong>Staff {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label className="wide">Staff email<input type="email" value={row.email} onChange={(event) => updateRow(index, 'email', event.target.value)} placeholder="staff@tokeaevents.co.ke" /></label>
+          <label>Role title<select value={row.roleTitle} onChange={(event) => updateRow(index, 'roleTitle', event.target.value)}>{staffRoleSuggestions.map((role) => <option key={role} value={role}>{role}</option>)}</select><SuggestionChips options={staffRoleSuggestions.slice(0, 5)} onPick={(value) => updateRow(index, 'roleTitle', value)} /></label>
+          <label>Department<select value={row.department} onChange={(event) => updateRow(index, 'department', event.target.value)}>{staffDepartmentOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <PickerField label="Shift start" type="datetime-local" value={row.shiftStart} onChange={(value) => updateRow(index, 'shiftStart', value)} />
+          <PickerField label="Shift end" type="datetime-local" value={row.shiftEnd} onChange={(value) => updateRow(index, 'shiftEnd', value)} />
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another staff member</button>
     </div>
   );
 }
