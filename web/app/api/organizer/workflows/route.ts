@@ -752,6 +752,11 @@ export async function POST(request: NextRequest) {
         await auth.supabase
           .from("event_feature_settings")
           .upsert({ event_id: eventId!, triplink_active: true });
+        const { error: clearRoutesError } = await auth.supabase
+          .from("transport_routes")
+          .delete()
+          .eq("event_id", eventId!);
+        if (clearRoutesError) throw clearRoutesError;
         const rows = jsonRows(fields, "triplinkRoutes", fields).map((row) => {
           const schedules = [
             optionalTimestamp(row, "departureAt")
@@ -772,7 +777,7 @@ export async function POST(request: NextRequest) {
             transport_provider_id: providerId,
             route_name: text(row, "routeName", 2, 120),
             pickup_points: text(row, "pickupPoints", 2, 500)
-              .split(",")
+              .split(/[,\n]+/)
               .map((point) => point.trim())
               .filter(Boolean),
             dropoff_points: [text(row, "dropoffPoint", 2, 160)],

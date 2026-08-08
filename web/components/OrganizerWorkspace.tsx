@@ -45,6 +45,15 @@ type WizardFoodoRow = {
   menuSummary: string;
   requirements: string;
 };
+type WizardTriplinkRow = {
+  routeName: string;
+  pickupPoints: string;
+  dropoffPoint: string;
+  departureAt: string;
+  returnAt: string;
+  priceKes: string;
+  capacity: string;
+};
 type WizardSponsorRow = {
   name: string;
   priceKes: string;
@@ -458,6 +467,44 @@ const wizardFoodoDefaults: WizardFoodoRow[] = [
     menuSummary: "Nyama choma, mutura, kachumbari, ugali, and sauces.",
     requirements:
       "Grill clearance, fire safety check, water access, and waste handling.",
+  },
+];
+const triplinkRouteSuggestions = [
+  "CBD Express",
+  "Westlands Shuttle",
+  "Thika Road Connector",
+  "Ngong Road Shuttle",
+  "Mombasa Road Express",
+  "Kiambu Road Connector",
+  "Kilimani Pickup",
+  "Karen Link",
+];
+const pickupPointSuggestions = [
+  "CBD, Westlands, Kilimani",
+  "Thika Road, Kasarani, Roysambu",
+  "Ngong Road, Junction, Karen",
+  "Mombasa Road, South B, South C",
+  "Kiambu Road, Ridgeways, Runda",
+  "Embakasi, Donholm, Buruburu",
+];
+const wizardTriplinkDefaults: WizardTriplinkRow[] = [
+  {
+    routeName: "CBD Express",
+    pickupPoints: "CBD\nWestlands\nKilimani",
+    dropoffPoint: "Event main gate",
+    departureAt: "",
+    returnAt: "",
+    priceKes: "500",
+    capacity: "45",
+  },
+  {
+    routeName: "Thika Road Connector",
+    pickupPoints: "Thika Road\nKasarani\nRoysambu",
+    dropoffPoint: "Event main gate",
+    departureAt: "",
+    returnAt: "",
+    priceKes: "600",
+    capacity: "45",
   },
 ];
 const wizardSponsorDefaults: WizardSponsorRow[] = [
@@ -1500,6 +1547,9 @@ function CreateEventWizard() {
     useState<WizardTicketRow[]>(wizardTicketDefaults);
   const [foodoRows, setFoodoRows] =
     useState<WizardFoodoRow[]>(wizardFoodoDefaults);
+  const [triplinkRows, setTriplinkRows] = useState<WizardTriplinkRow[]>(
+    wizardTriplinkDefaults,
+  );
   const [ticketSalesStart, setTicketSalesStart] = useState("");
   const [ticketSalesEnd, setTicketSalesEnd] = useState("");
   const [ticketDescription, setTicketDescription] = useState("");
@@ -1715,6 +1765,23 @@ function CreateEventWizard() {
     };
   }
 
+  function triplinkFields() {
+    return {
+      triplinkRoutes: JSON.stringify(
+        triplinkRows
+          .map((row) => ({
+            ...row,
+            routeName: row.routeName.trim(),
+            pickupPoints: row.pickupPoints.trim(),
+            dropoffPoint: row.dropoffPoint.trim(),
+            priceKes: row.priceKes.trim(),
+            capacity: row.capacity.trim(),
+          }))
+          .filter((row) => row.routeName && row.pickupPoints),
+      ),
+    };
+  }
+
   function sponsorFields() {
     return {
       sponsorshipPackages: JSON.stringify(
@@ -1781,6 +1848,12 @@ function CreateEventWizard() {
       );
     if (step === 5)
       return saveWizardWorkflow("foodo", foodoFields(), "Foodo vendors saved.");
+    if (step === 6)
+      return saveWizardWorkflow(
+        "triplink_route",
+        triplinkFields(),
+        "Triplink routes saved.",
+      );
     if (step === 7)
       return saveWizardWorkflow(
         "staff_invite",
@@ -1816,7 +1889,7 @@ function CreateEventWizard() {
   }
 
   async function saveAndAdvance() {
-    const shouldSaveStep = [3, 4, 5, 7, 8, 9, 10, 11].includes(step);
+    const shouldSaveStep = [3, 4, 5, 6, 7, 8, 9, 10, 11].includes(step);
     if (shouldSaveStep) {
       const saved = await saveCurrentProgress();
       if (!saved) return;
@@ -2257,6 +2330,13 @@ function CreateEventWizard() {
               <FoodoStageFields rows={foodoRows} setRows={setFoodoRows} />
             )}
 
+            {step === 6 && (
+              <TriplinkStageFields
+                rows={triplinkRows}
+                setRows={setTriplinkRows}
+              />
+            )}
+
             {step === 7 && (
               <StaffStageFields rows={staffRows} setRows={setStaffRows} />
             )}
@@ -2284,7 +2364,7 @@ function CreateEventWizard() {
             )}
 
             {step > 2 &&
-              ![3, 4, 5, 7, 8, 9, 10, 11].includes(step) &&
+              ![3, 4, 5, 6, 7, 8, 9, 10, 11].includes(step) &&
               step < wizardSteps.length - 1 && (
                 <WizardStageFields step={step} />
               )}
@@ -2353,17 +2433,19 @@ function CreateEventWizard() {
                           ? "Save tickets"
                           : step === 5
                             ? "Save Foodo"
-                            : step === 7
-                              ? "Save staff"
-                              : step === 8
-                                ? "Save volunteers"
-                                : step === 9
-                                  ? "Save sponsors"
-                                  : step === 10
-                                    ? "Save budget"
-                                    : step === 11
-                                      ? "Save marketing"
-                                      : "Continue"}{" "}
+                            : step === 6
+                              ? "Save Triplink"
+                              : step === 7
+                                ? "Save staff"
+                                : step === 8
+                                  ? "Save volunteers"
+                                  : step === 9
+                                    ? "Save sponsors"
+                                    : step === 10
+                                      ? "Save budget"
+                                      : step === 11
+                                        ? "Save marketing"
+                                        : "Continue"}{" "}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -2909,6 +2991,151 @@ function FoodoStageFields({
       ))}
       <button className="button secondary wide" type="button" onClick={addRow}>
         Add another Foodo vendor
+      </button>
+    </div>
+  );
+}
+
+function TriplinkStageFields({
+  rows,
+  setRows,
+}: {
+  rows: WizardTriplinkRow[];
+  setRows: (rows: WizardTriplinkRow[]) => void;
+}) {
+  function updateRow(
+    index: number,
+    key: keyof WizardTriplinkRow,
+    value: string,
+  ) {
+    setRows(
+      rows.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, [key]: value } : row,
+      ),
+    );
+  }
+
+  function addRow() {
+    setRows([
+      ...rows,
+      {
+        routeName: "Westlands Shuttle",
+        pickupPoints: "Westlands\nParklands\nSarit",
+        dropoffPoint: "Event main gate",
+        departureAt: "",
+        returnAt: "",
+        priceKes: "500",
+        capacity: "45",
+      },
+    ]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1)
+      setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head">
+        <strong>Triplink route tray</strong>
+      </div>
+      {rows.map((row, index) => (
+        <div
+          className="ticket-bulk-card multi-record-card"
+          key={`triplink-${index}`}
+        >
+          <div className="multi-record-head">
+            <strong>Route {index + 1}</strong>
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              disabled={rows.length === 1}
+            >
+              Remove
+            </button>
+          </div>
+          <label>
+            Route name
+            <select
+              value={row.routeName}
+              onChange={(event) =>
+                updateRow(index, "routeName", event.target.value)
+              }
+            >
+              {triplinkRouteSuggestions.map((route) => (
+                <option key={route} value={route}>
+                  {route}
+                </option>
+              ))}
+            </select>
+            <SuggestionChips
+              options={triplinkRouteSuggestions.slice(0, 5)}
+              onPick={(value) => updateRow(index, "routeName", value)}
+            />
+          </label>
+          <label>
+            Price per seat (KES)
+            <input
+              type="number"
+              value={row.priceKes}
+              onChange={(event) =>
+                updateRow(index, "priceKes", event.target.value)
+              }
+            />
+          </label>
+          <label>
+            Capacity
+            <input
+              type="number"
+              value={row.capacity}
+              onChange={(event) =>
+                updateRow(index, "capacity", event.target.value)
+              }
+            />
+          </label>
+          <label>
+            Dropoff
+            <input
+              value={row.dropoffPoint}
+              onChange={(event) =>
+                updateRow(index, "dropoffPoint", event.target.value)
+              }
+              placeholder="Event main gate"
+            />
+          </label>
+          <label className="wide">
+            Pickup points
+            <textarea
+              value={row.pickupPoints}
+              onChange={(event) =>
+                updateRow(index, "pickupPoints", event.target.value)
+              }
+              placeholder="CBD&#10;Westlands&#10;Kilimani"
+            />
+            <SuggestionChips
+              options={pickupPointSuggestions.slice(0, 4)}
+              onPick={(value) =>
+                updateRow(index, "pickupPoints", value.replace(/, /g, "\n"))
+              }
+            />
+          </label>
+          <PickerField
+            label="First departure"
+            type="datetime-local"
+            value={row.departureAt}
+            onChange={(value) => updateRow(index, "departureAt", value)}
+          />
+          <PickerField
+            label="Return departure"
+            type="datetime-local"
+            value={row.returnAt}
+            onChange={(value) => updateRow(index, "returnAt", value)}
+          />
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>
+        Add another Triplink route
       </button>
     </div>
   );
