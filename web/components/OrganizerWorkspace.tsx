@@ -24,6 +24,9 @@ type OrganizerReport = {
 type WizardTicketRow = { name: string; priceKes: string; quantity: string };
 type WizardSponsorRow = { name: string; priceKes: string; inventory: string; benefits: string };
 type WizardStaffRow = { email: string; roleTitle: string; department: string; shiftStart: string; shiftEnd: string };
+type WizardVolunteerRow = { title: string; requiredCount: string; volunteerEmail: string; shiftStart: string; shiftEnd: string; description: string };
+type WizardBudgetRow = { category: string; budgetKes: string; notes: string };
+type WizardCampaignRow = { name: string; channel: string; objective: string; contentFormat: string; cta: string; trackingCode: string; startsAt: string; endsAt: string; message: string };
 
 const modules: Record<string, Module> = {
   events: { title: 'My Events', description: 'Monitor every draft, live, upcoming, completed, and cancelled event.', action: 'Create event', metrics: [['Published', '2'], ['Drafts', '1'], ['Ticket revenue', 'KES 642K']], rows: [['Nairobi Gospel Night', '15 Jul 2026 - KICC', '42% ready'], ['Campus Amapiano Festival', '30 Aug 2026 - Carnivore', 'Draft'], ['Tech Founders Summit', '12 Sep 2026 - Sarit', '61% ready']] },
@@ -81,6 +84,28 @@ const wizardStaffDefaults: WizardStaffRow[] = [
   { email: '', roleTitle: 'Security Lead', department: 'security', shiftStart: '', shiftEnd: '' },
   { email: '', roleTitle: 'Gate Scanner', department: 'ticket_scanners', shiftStart: '', shiftEnd: '' },
   { email: '', roleTitle: 'VIP Host', department: 'vip_coordinators', shiftStart: '', shiftEnd: '' },
+];
+const volunteerRoleSuggestions = ['Guest experience team', 'Green team', 'Information desk', 'Lost and found', 'Queue marshals', 'Photo runners', 'Artist hospitality', 'Community support'];
+const wizardVolunteerDefaults: WizardVolunteerRow[] = [
+  { title: 'Guest experience team', requiredCount: '10', volunteerEmail: '', shiftStart: '', shiftEnd: '', description: 'Welcome guests, guide queues, and help people find gates, seats, and support points.' },
+  { title: 'Information desk', requiredCount: '4', volunteerEmail: '', shiftStart: '', shiftEnd: '', description: 'Answer guest questions and direct people to tickets, Foodo, Triplink, and lost and found.' },
+];
+const budgetCategories = ['Venue', 'Production', 'Security', 'Marketing', 'Talent', 'Staffing', 'Foodo setup', 'Triplink transport', 'Permits', 'Insurance', 'Contingency'];
+const wizardBudgetDefaults: WizardBudgetRow[] = [
+  { category: 'Venue', budgetKes: '120000', notes: 'Deposit, venue balance, cleaning, and venue compliance.' },
+  { category: 'Production', budgetKes: '88000', notes: 'Stage, sound, lights, screens, and technical crew.' },
+  { category: 'Security', budgetKes: '60000', notes: 'Security staff, scanners, emergency response, and crowd control.' },
+  { category: 'Marketing', budgetKes: '65000', notes: 'Creative, social boosts, creators, radio, and campus ambassadors.' },
+];
+const campaignNames = ['Launch campaign', 'Early bird push', 'Final week sales', 'VIP table push', 'Influencer reel burst', 'Last-call reminder'];
+const campaignChannels = ['Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'X', 'Telegram', 'Radio', 'Campus ambassadors'];
+const campaignObjectives = ['Awareness', 'Interested saves', 'Ticket conversion', 'VIP upsell', 'Community growth', 'Last-call urgency'];
+const campaignFormats = ['Poster carousel + reel', 'Short-form video', 'Broadcast copy + short link', 'Story countdown', 'Creator brief', 'Radio mention'];
+const campaignCtas = ['Save event', 'Buy ticket', 'Share with friends', 'Join community', 'Book VIP', 'Use creator code'];
+const wizardCampaignDefaults: WizardCampaignRow[] = [
+  { name: 'Launch campaign', channel: 'Instagram', objective: 'Awareness', contentFormat: 'Poster carousel + reel', cta: 'Save event', trackingCode: 'IG-LAUNCH', startsAt: '', endsAt: '', message: 'Introduce the event with poster, date, venue, ticket-from price, and a save/share CTA.' },
+  { name: 'Early bird push', channel: 'WhatsApp', objective: 'Ticket conversion', contentFormat: 'Broadcast copy + short link', cta: 'Buy ticket', trackingCode: 'WA-EARLY', startsAt: '', endsAt: '', message: 'Send a direct sales message with early bird deadline, price, and Tokea ticket link.' },
+  { name: 'Influencer reel burst', channel: 'TikTok', objective: 'Community growth', contentFormat: 'Short-form video', cta: 'Join community', trackingCode: 'TT-CREATOR', startsAt: '', endsAt: '', message: 'Use creator clips, venue energy, artist teasers, and a community join CTA.' },
 ];
 type WizardField = {
   name: string;
@@ -387,6 +412,9 @@ function CreateEventWizard() {
   const [ticketDescription, setTicketDescription] = useState('');
   const [sponsorRows, setSponsorRows] = useState<WizardSponsorRow[]>(wizardSponsorDefaults);
   const [staffRows, setStaffRows] = useState<WizardStaffRow[]>(wizardStaffDefaults);
+  const [volunteerRows, setVolunteerRows] = useState<WizardVolunteerRow[]>(wizardVolunteerDefaults);
+  const [budgetRows, setBudgetRows] = useState<WizardBudgetRow[]>(wizardBudgetDefaults);
+  const [campaignRows, setCampaignRows] = useState<WizardCampaignRow[]>(wizardCampaignDefaults);
   const [form, setForm] = useState({
     title: '',
     category: 'Music',
@@ -523,16 +551,37 @@ function CreateEventWizard() {
     };
   }
 
+  function volunteerFields() {
+    return {
+      volunteerOpportunities: JSON.stringify(volunteerRows.filter((row) => row.title.trim() && Number(row.requiredCount) > 0)),
+    };
+  }
+
+  function budgetFields() {
+    return {
+      budgets: JSON.stringify(budgetRows.filter((row) => row.category.trim() && Number(row.budgetKes) >= 0)),
+    };
+  }
+
+  function campaignFields() {
+    return {
+      campaigns: JSON.stringify(campaignRows.filter((row) => row.name.trim() && row.channel.trim())),
+    };
+  }
+
   async function saveCurrentProgress() {
     if (step === 4) return saveWizardWorkflow('ticket_type', ticketFields(), 'Ticket categories saved.');
     if (step === 7) return saveWizardWorkflow('staff_invite', staffFields(), 'Staff invitations saved.');
+    if (step === 8) return saveWizardWorkflow('volunteer_opportunity', volunteerFields(), 'Volunteer opportunities saved.');
     if (step === 9) return saveWizardWorkflow('sponsorship_package', sponsorFields(), 'Sponsor packages saved.');
+    if (step === 10) return saveWizardWorkflow('budget', budgetFields(), 'Budget lines saved.');
+    if (step === 11) return saveWizardWorkflow('campaign', campaignFields(), 'Marketing campaigns saved.');
     const eventId = await saveDraft();
     return Boolean(eventId);
   }
 
   async function saveAndAdvance() {
-    const shouldSaveStep = step === 4 || step === 7 || step === 9;
+    const shouldSaveStep = [4, 7, 8, 9, 10, 11].includes(step);
     if (shouldSaveStep) {
       const saved = await saveCurrentProgress();
       if (!saved) return;
@@ -710,9 +759,15 @@ function CreateEventWizard() {
 
             {step === 7 && <StaffStageFields rows={staffRows} setRows={setStaffRows} />}
 
+            {step === 8 && <VolunteerStageFields rows={volunteerRows} setRows={setVolunteerRows} />}
+
             {step === 9 && <SponsorStageFields rows={sponsorRows} setRows={setSponsorRows} />}
 
-            {step > 2 && step !== 4 && step !== 7 && step !== 9 && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
+            {step === 10 && <BudgetStageFields rows={budgetRows} setRows={setBudgetRows} />}
+
+            {step === 11 && <MarketingStageFields rows={campaignRows} setRows={setCampaignRows} />}
+
+            {step > 2 && ![4, 7, 8, 9, 10, 11].includes(step) && step < wizardSteps.length - 1 && <WizardStageFields step={step} />}
 
             {step === wizardSteps.length - 1 && (
               <div className="wizard-preview">
@@ -729,7 +784,7 @@ function CreateEventWizard() {
                 {wizardWorkflowActions[step] && <button className="button secondary" type="button" onClick={() => void openFullSetup(wizardWorkflowActions[step]!)}>Open full setup</button>}
                 {step >= 5 && step < wizardSteps.length - 1 && <button className="button secondary" type="button" onClick={() => setStep(wizardSteps.length - 1)}>Skip add-ons</button>}
                 <button className="button" type="button" onClick={() => void saveAndAdvance()} disabled={saving}>
-                  {saving ? 'Saving...' : step === wizardSteps.length - 1 ? 'Publish when ready' : step === 4 ? 'Save tickets' : step === 7 ? 'Save staff' : step === 9 ? 'Save sponsors' : 'Continue'} <ArrowRight size={16} />
+                  {saving ? 'Saving...' : step === wizardSteps.length - 1 ? 'Publish when ready' : step === 4 ? 'Save tickets' : step === 7 ? 'Save staff' : step === 8 ? 'Save volunteers' : step === 9 ? 'Save sponsors' : step === 10 ? 'Save budget' : step === 11 ? 'Save marketing' : 'Continue'} <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -900,6 +955,41 @@ function StaffStageFields({ rows, setRows }: { rows: WizardStaffRow[]; setRows: 
   );
 }
 
+function VolunteerStageFields({ rows, setRows }: { rows: WizardVolunteerRow[]; setRows: (rows: WizardVolunteerRow[]) => void }) {
+  function updateRow(index: number, key: keyof WizardVolunteerRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { title: 'Queue marshals', requiredCount: '6', volunteerEmail: '', shiftStart: '', shiftEnd: '', description: 'Help guests move smoothly through queues and support points.' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head">
+        <strong>Volunteer opportunity tray</strong>
+        <span>Add every volunteer team you need, set capacity and shifts, optionally assign a volunteer by email, then click Save volunteers before continuing.</span>
+      </div>
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`volunteer-${index}`}>
+          <div className="multi-record-head"><strong>Opportunity {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label>Volunteer role<select value={row.title} onChange={(event) => updateRow(index, 'title', event.target.value)}>{volunteerRoleSuggestions.map((role) => <option key={role} value={role}>{role}</option>)}</select><SuggestionChips options={volunteerRoleSuggestions.slice(0, 5)} onPick={(value) => updateRow(index, 'title', value)} /></label>
+          <label>Volunteers required<input type="number" value={row.requiredCount} onChange={(event) => updateRow(index, 'requiredCount', event.target.value)} /></label>
+          <label className="wide">Assign volunteer email optional<input type="email" value={row.volunteerEmail} onChange={(event) => updateRow(index, 'volunteerEmail', event.target.value)} placeholder="volunteer@tokeaevents.co.ke" /></label>
+          <PickerField label="Shift start" type="datetime-local" value={row.shiftStart} onChange={(value) => updateRow(index, 'shiftStart', value)} />
+          <PickerField label="Shift end" type="datetime-local" value={row.shiftEnd} onChange={(value) => updateRow(index, 'shiftEnd', value)} />
+          <label className="wide">Details<textarea value={row.description} onChange={(event) => updateRow(index, 'description', event.target.value)} placeholder="What this team will do, reporting point, supervisor, and expectations." /></label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another volunteer opportunity</button>
+    </div>
+  );
+}
+
 function SponsorStageFields({ rows, setRows }: { rows: WizardSponsorRow[]; setRows: (rows: WizardSponsorRow[]) => void }) {
   function updateRow(index: number, key: keyof WizardSponsorRow, value: string) {
     setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
@@ -926,6 +1016,71 @@ function SponsorStageFields({ rows, setRows }: { rows: WizardSponsorRow[]; setRo
         </div>
       ))}
       <button className="button secondary wide" type="button" onClick={addRow}>Add another sponsor package</button>
+    </div>
+  );
+}
+
+function BudgetStageFields({ rows, setRows }: { rows: WizardBudgetRow[]; setRows: (rows: WizardBudgetRow[]) => void }) {
+  function updateRow(index: number, key: keyof WizardBudgetRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { category: 'Contingency', budgetKes: '25000', notes: 'Buffer for urgent event-day expenses.' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head"><strong>Budget line tray</strong><span>Add all cost categories, estimate the amount, note what each line covers, then click Save budget before continuing.</span></div>
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`budget-${index}`}>
+          <div className="multi-record-head"><strong>Budget line {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label>Category<select value={row.category} onChange={(event) => updateRow(index, 'category', event.target.value)}>{budgetCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select><SuggestionChips options={budgetCategories.slice(0, 6)} onPick={(value) => updateRow(index, 'category', value)} /></label>
+          <label>Budget (KES)<input type="number" value={row.budgetKes} onChange={(event) => updateRow(index, 'budgetKes', event.target.value)} /></label>
+          <label className="wide">Notes<textarea value={row.notes} onChange={(event) => updateRow(index, 'notes', event.target.value)} placeholder="What this budget line covers, supplier assumptions, payment terms, or risks." /></label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another budget line</button>
+    </div>
+  );
+}
+
+function MarketingStageFields({ rows, setRows }: { rows: WizardCampaignRow[]; setRows: (rows: WizardCampaignRow[]) => void }) {
+  function updateRow(index: number, key: keyof WizardCampaignRow, value: string) {
+    setRows(rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  }
+
+  function addRow() {
+    setRows([...rows, { name: 'Last-call reminder', channel: 'WhatsApp', objective: 'Last-call urgency', contentFormat: 'Broadcast copy + short link', cta: 'Buy ticket', trackingCode: 'WA-LASTCALL', startsAt: '', endsAt: '', message: 'Final reminder with date, venue, price, urgency, and ticket link.' }]);
+  }
+
+  function removeRow(index: number) {
+    if (rows.length > 1) setRows(rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  return (
+    <div className="wizard-form ticket-bulk-grid">
+      <div className="wide ticket-bulk-head"><strong>Marketing campaign tray</strong><span>Plan each campaign push separately so Tokea can track channel, objective, CTA, timing, and performance.</span></div>
+      <MarketingChannelGuide />
+      {rows.map((row, index) => (
+        <div className="ticket-bulk-card multi-record-card" key={`campaign-${index}`}>
+          <div className="multi-record-head"><strong>Campaign {index + 1}</strong><button type="button" onClick={() => removeRow(index)} disabled={rows.length === 1}>Remove</button></div>
+          <label>Campaign name<select value={row.name} onChange={(event) => updateRow(index, 'name', event.target.value)}>{campaignNames.map((name) => <option key={name} value={name}>{name}</option>)}</select><SuggestionChips options={campaignNames.slice(0, 5)} onPick={(value) => updateRow(index, 'name', value)} /></label>
+          <label>Channel<select value={row.channel} onChange={(event) => updateRow(index, 'channel', event.target.value)}>{campaignChannels.map((channel) => <option key={channel} value={channel}>{channel}</option>)}</select><SuggestionChips options={campaignChannels.slice(0, 5)} onPick={(value) => updateRow(index, 'channel', value)} /></label>
+          <label>Objective<select value={row.objective} onChange={(event) => updateRow(index, 'objective', event.target.value)}>{campaignObjectives.map((objective) => <option key={objective} value={objective}>{objective}</option>)}</select></label>
+          <label>Content format<select value={row.contentFormat} onChange={(event) => updateRow(index, 'contentFormat', event.target.value)}>{campaignFormats.map((format) => <option key={format} value={format}>{format}</option>)}</select></label>
+          <label>Call to action<select value={row.cta} onChange={(event) => updateRow(index, 'cta', event.target.value)}>{campaignCtas.map((cta) => <option key={cta} value={cta}>{cta}</option>)}</select></label>
+          <label>Tracking code<input value={row.trackingCode} onChange={(event) => updateRow(index, 'trackingCode', event.target.value)} placeholder="IG-LAUNCH" /></label>
+          <PickerField label="Campaign start" type="datetime-local" value={row.startsAt} onChange={(value) => updateRow(index, 'startsAt', value)} />
+          <PickerField label="Campaign end" type="datetime-local" value={row.endsAt} onChange={(value) => updateRow(index, 'endsAt', value)} />
+          <label className="wide">Campaign message<textarea value={row.message} onChange={(event) => updateRow(index, 'message', event.target.value)} placeholder="Write the campaign brief, post copy, broadcast copy, creator instructions, or radio mention notes." /></label>
+        </div>
+      ))}
+      <button className="button secondary wide" type="button" onClick={addRow}>Add another campaign</button>
     </div>
   );
 }

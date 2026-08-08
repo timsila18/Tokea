@@ -256,6 +256,8 @@ export async function POST(request: NextRequest) {
             ends_at: optionalTimestamp(row, 'endsAt'),
             created_by: auth.user.id,
           }));
+          const { error: deleteError } = await auth.supabase.from('marketing_campaigns').delete().eq('event_id', eventId!);
+          if (deleteError) throw deleteError;
           ({ error } = await auth.supabase.from('marketing_campaigns').insert(rows));
           message = `${rows.length} campaign${rows.length === 1 ? '' : 's'} saved.`;
         }
@@ -305,6 +307,8 @@ export async function POST(request: NextRequest) {
           let assignedCount = 0;
           let pendingCount = 0;
           const inserts = rows.map((row) => ({ event_id: eventId!, title: text(row, 'title', 2, 120), description: row.description?.trim() || null, required_count: Number(text(row, 'requiredCount', 1, 5)), created_by: auth.user.id }));
+          const { error: clearError } = await auth.supabase.from('volunteer_opportunities').delete().eq('event_id', eventId!);
+          if (clearError) throw clearError;
           ({ error } = await auth.supabase.from('volunteer_opportunities').insert(inserts));
           if (!error) {
             await ensureWorkspace(eventId!, organizerId!, eventTitle);
@@ -378,7 +382,9 @@ export async function POST(request: NextRequest) {
       case 'budget':
         {
           const rows = jsonRows(fields, 'budgets', fields).map((row) => ({ event_id: eventId!, category: text(row, 'category', 2, 80), budgeted_cents: amount(row, 'budgetKes'), notes: row.notes?.trim() || null }));
-          ({ error } = await auth.supabase.from('event_budgets').upsert(rows, { onConflict: 'event_id,category' }));
+          const { error: deleteError } = await auth.supabase.from('event_budgets').delete().eq('event_id', eventId!);
+          if (deleteError) throw deleteError;
+          ({ error } = await auth.supabase.from('event_budgets').insert(rows));
           message = `${rows.length} budget line${rows.length === 1 ? '' : 's'} saved.`;
         }
         break;
